@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portfolio Dashboard</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #0d1117;
+  color: #c9d1d9;
+  font-family: 'Courier New', Courier, monospace;
+  min-height: 100vh;
+  padding: 24px 20px;
+}
+#app { max-width: 1300px; margin: 0 auto; }
+
+/* ── Top bar ── */
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #30363d;
+  padding-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.title-block .main-title { font-size: 20px; font-weight: 700; color: #e6edf3; letter-spacing: 2px; }
+.title-block .sub-title  { font-size: 11px; color: #8b949e; margin-top: 3px; }
+
+/* ── Portfolio switcher ── */
+.portfolio-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+.ptab {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  color: #8b949e;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 9px 18px;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  transition: all 0.15s;
+}
+.ptab:hover  { border-color: #58a6ff; color: #c9d1d9; }
+.ptab.active { background: #1c2a3a; border-color: #388bfd; color: #58a6ff; }
+
+/* ── Load button ── */
+#fetch-btn {
+  background: #1f6feb;
+  border: 2px solid #388bfd;
+  border-radius: 8px;
+  color: #fff;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 10px 26px;
+  cursor: pointer;
+  letter-spacing: 1px;
+  transition: background 0.15s, box-shadow 0.15s;
+  box-shadow: 0 0 10px rgba(56,139,253,0.4);
+  white-space: nowrap;
+}
+#fetch-btn:hover:not(:disabled) { background: #388bfd; box-shadow: 0 0 18px rgba(56,139,253,0.7); }
+#fetch-btn:disabled { background: #21262d; border-color: #30363d; color: #484f58; cursor: not-allowed; box-shadow: none; }
+
+/* ── Status bar ── */
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  color: #8b949e;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 9px 14px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.dot { width: 8px; height: 8px; border-radius: 50%; background: #3fb950; flex-shrink: 0; }
+.dot.loading  { background: #d29922; animation: pulse 1s infinite; }
+.dot.error    { background: #f85149; }
+.dot.cooldown { background: #58a6ff; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.25} }
+.progress-wrap { flex: 1; min-width: 80px; background: #21262d; border-radius: 4px; height: 5px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 4px; background: #388bfd; transition: width 0.3s; width: 0%; }
+
+/* ── Portfolio panel ── */
+.portfolio-panel { display: none; }
+.portfolio-panel.active { display: block; }
+.portfolio-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #e6edf3;
+  letter-spacing: 1px;
+  margin-bottom: 14px;
+}
+
+/* ── Table ── */
+.stock-table-wrap { overflow-x: auto; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+thead th {
+  background: #161b22;
+  color: #8b949e;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 1px solid #30363d;
+  white-space: nowrap;
+}
+thead th:not(:first-child) { text-align: right; }
+tbody tr {
+  border-bottom: 1px solid #1e242c;
+  transition: background 0.1s;
+}
+tbody tr:hover { background: #161b22; }
+tbody td {
+  padding: 11px 14px;
+  white-space: nowrap;
+}
+tbody td:not(:first-child) { text-align: right; }
+
+.sym-cell { font-weight: 700; color: #e6edf3; letter-spacing: 1px; font-size: 13px; }
+.name-cell { color: #8b949e; font-size: 11px; padding-left: 4px; }
+
+.val { font-size: 13px; color: #e6edf3; }
+.val.green { color: #3fb950; }
+.val.red   { color: #f85149; }
+.val.amber { color: #d29922; }
+.val.muted { color: #484f58; }
+
+.rsi-badge {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.rsi-badge.green { background: rgba(63,185,80,0.15); color: #3fb950; }
+.rsi-badge.red   { background: rgba(248,81,73,0.15);  color: #f85149; }
+.rsi-badge.amber { background: rgba(210,153,34,0.15); color: #d29922; }
+.rsi-badge.muted { background: #21262d; color: #484f58; }
+
+.row-status { font-size: 10px; color: #484f58; }
+.row-status.loading { color: #d29922; animation: pulse 1s infinite; }
+.row-status.done    { color: #3fb950; }
+.row-status.error   { color: #f85149; }
+
+/* summary strip */
+.summary-strip {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+  font-size: 11px;
+  color: #8b949e;
+}
+.summary-strip span { display: flex; align-items: center; gap: 5px; }
+.sdot { width: 7px; height: 7px; border-radius: 50%; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div class="top-bar">
+    <div class="title-block">
+      <div class="main-title">▍ PORTFOLIO DASHBOARD</div>
+      <div class="sub-title">Powered by Twelve Data · 8 credits/min rate limit auto-managed</div>
+    </div>
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+      <div class="portfolio-tabs" id="ptabs"></div>
+      <button id="fetch-btn" onclick="fetchCurrentPortfolio()">▶ LOAD DATA</button>
+    </div>
+  </div>
+
+  <div class="status-bar">
+    <div class="dot" id="sdot"></div>
+    <span id="stext">Select a portfolio and click LOAD DATA</span>
+    <div class="progress-wrap"><div class="progress-fill" id="progress"></div></div>
+    <span id="scredits" style="white-space:nowrap;">Credits: 0/8</span>
+    <span id="seta" style="white-space:nowrap;margin-left:4px;"></span>
+  </div>
+
+  <div id="portfolio-panels"></div>
+</div>
+
+<script>
+const API_KEY = 'b6397bcea4254ba6bd695387a4e002be';
+
+// ── Portfolio definitions ────────────────────────────────────────────────────
+const PORTFOLIOS = [
+  {
+    id: 'hunters',
+    name: "Hunter's Portfolio",
+    tickers: [
+      { sym: 'AMZN',   name: 'Amazon.com Inc.' },
+      { sym: 'ASML',   name: 'ASML Holding N.V.' },
+      { sym: 'BIDU',   name: 'Baidu Inc.' },
+      { sym: 'BYDDY',  name: 'BYD Co. Ltd. ADR' },
+      { sym: 'CRM',    name: 'Salesforce Inc.' },
+      { sym: 'GOOGL',  name: 'Alphabet Inc.' },
+      { sym: 'GRRR',   name: 'Gorilla Technology Group' },
+      { sym: 'HIMS',   name: 'Hims & Hers Health Inc.' },
+      { sym: 'IONQ',   name: 'IonQ Inc.' },
+      { sym: 'JD',     name: 'JD.com Inc.' },
+      { sym: 'ONDS',   name: 'Ondas Holdings Inc.' },
+      { sym: 'OSCR',   name: 'Oscar Health Inc.' },
+      { sym: 'PEGA',   name: 'Pegasystems Inc.' },
+      { sym: 'PEP',    name: 'PepsiCo Inc.' },
+      { sym: 'QBTS',   name: 'D-Wave Quantum Inc.' },
+      { sym: 'SE',     name: 'Sea Limited' },
+      { sym: 'TSLA',   name: 'Tesla Inc.' },
+      { sym: 'UNH',    name: 'UnitedHealth Group Inc.' },
+      { sym: 'ZETA',   name: 'Zeta Global Holdings Corp.' },
+      { sym: 'ZVRA',   name: 'Zevra Therapeutics Inc.' },
+      { sym: 'ETH/USD',name: 'Ethereum (ETH/USD)' },
+      { sym: 'IBIT',   name: 'iShares Bitcoin Trust ETF' },
+    ]
+  },
+  {
+    id: 'largevalue',
+    name: 'Large Value Portfolio',
+    tickers: [
+      { sym: 'AIG',   name: 'American International Group' },
+      { sym: 'AMZN',  name: 'Amazon.com Inc.' },
+      { sym: 'AXP',   name: 'American Express Co.' },
+      { sym: 'BAC',   name: 'Bank of America Corp.' },
+      { sym: 'BRK/B', name: 'Berkshire Hathaway Inc. B' },
+      { sym: 'C',     name: 'Citigroup Inc.' },
+      { sym: 'CI',    name: 'The Cigna Group' },
+      { sym: 'CMCSA', name: 'Comcast Corp.' },
+      { sym: 'COF',   name: 'Capital One Financial Corp.' },
+      { sym: 'COP',   name: 'ConocoPhillips' },
+      { sym: 'CVS',   name: 'CVS Health Corp.' },
+      { sym: 'CVX',   name: 'Chevron Corp.' },
+      { sym: 'DE',    name: 'Deere & Company' },
+      { sym: 'DIS',   name: 'The Walt Disney Co.' },
+      { sym: 'ELV',   name: 'Elevance Health Inc.' },
+      { sym: 'GM',    name: 'General Motors Co.' },
+      { sym: 'GOOGL', name: 'Alphabet Inc.' },
+      { sym: 'INTC',  name: 'Intel Corp.' },
+      { sym: 'JNJ',   name: 'Johnson & Johnson' },
+      { sym: 'JPM',   name: 'JPMorgan Chase & Co.' },
+      { sym: 'LOW',   name: "Lowe's Companies Inc." },
+      { sym: 'META',  name: 'Meta Platforms Inc.' },
+      { sym: 'MRK',   name: 'Merck & Co. Inc.' },
+      { sym: 'MRSH',  name: 'Marsh & McLennan Companies' },
+      { sym: 'MSFT',  name: 'Microsoft Corp.' },
+      { sym: 'NOC',   name: 'Northrop Grumman Corp.' },
+      { sym: 'RTX',   name: 'RTX Corp.' },
+      { sym: 'SCHW',  name: 'Charles Schwab Corp.' },
+      { sym: 'TMO',   name: 'Thermo Fisher Scientific Inc.' },
+      { sym: 'TXN',   name: 'Texas Instruments Inc.' },
+      { sym: 'UNH',   name: 'UnitedHealth Group Inc.' },
+      { sym: 'WFC',   name: 'Wells Fargo & Co.' },
+      { sym: 'XOM',   name: 'Exxon Mobil Corp.' },
+    ]
+  }
+];
+
+// ── State ────────────────────────────────────────────────────────────────────
+let creditsUsed = 0;
+let cooldownActive = false;
+let activePortfolioId = PORTFOLIOS[0].id;
+let fetchAbort = false;
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function setStatus(msg, state) {
+  document.getElementById('stext').textContent = msg;
+  const d = document.getElementById('sdot');
+  d.className = 'dot' + (state ? ' ' + state : '');
+}
+function updCredits() {
+  document.getElementById('scredits').textContent = 'Credits: ' + creditsUsed + '/8';
+}
+function setProgress(n, total) {
+  document.getElementById('progress').style.width = (total > 0 ? Math.round(n / total * 100) : 0) + '%';
+}
+function setETA(msg) {
+  document.getElementById('seta').textContent = msg;
+}
+
+function calcSMA(arr, n) {
+  if (arr.length < n) return null;
+  return arr.slice(-n).reduce((a, b) => a + b, 0) / n;
+}
+function calcRSI(closes, period) {
+  period = period || 14;
+  if (closes.length < period + 1) return null;
+  let gains = 0, losses = 0;
+  for (let i = 1; i <= period; i++) {
+    const d = closes[i] - closes[i - 1];
+    if (d >= 0) gains += d; else losses -= d;
+  }
+  let ag = gains / period, al = losses / period;
+  for (let i = period + 1; i < closes.length; i++) {
+    const d = closes[i] - closes[i - 1];
+    ag = (ag * (period - 1) + Math.max(d, 0)) / period;
+    al = (al * (period - 1) + Math.max(-d, 0)) / period;
+  }
+  if (al === 0) return 100;
+  return 100 - (100 / (1 + ag / al));
+}
+function rsiClass(v) { return v >= 70 ? 'red' : v <= 30 ? 'green' : 'amber'; }
+
+function fmtPrice(p) {
+  if (p >= 1000) return '$' + p.toFixed(2);
+  if (p >= 1)    return '$' + p.toFixed(2);
+  return '$' + p.toFixed(4);
+}
+
+// ── Rate-limited API call ────────────────────────────────────────────────────
+function doCooldown() {
+  return new Promise(resolve => {
+    cooldownActive = true;
+    creditsUsed = 0;
+    updCredits();
+    let secs = 120;
+    const tick = () => {
+      if (fetchAbort) { cooldownActive = false; resolve(); return; }
+      setStatus('Rate limit — cooldown: ' + secs + 's remaining before continuing...', 'cooldown');
+      if (secs <= 0) { cooldownActive = false; resolve(); return; }
+      secs--;
+      setTimeout(tick, 1000);
+    };
+    tick();
+  });
+}
+
+async function apiGet(sym, interval) {
+  if (creditsUsed >= 8) await doCooldown();
+  if (fetchAbort) throw new Error('ABORTED');
+  const url = 'https://api.twelvedata.com/time_series'
+    + '?symbol=' + encodeURIComponent(sym)
+    + '&interval=' + interval
+    + '&outputsize=' + (interval === '1day' ? 250 : 100)
+    + '&apikey=' + API_KEY;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const data = await res.json();
+  if (data.status === 'error') throw new Error(data.message);
+  creditsUsed++;
+  updCredits();
+  return data;
+}
+
+// ── Build DOM ────────────────────────────────────────────────────────────────
+function buildUI() {
+  // Portfolio tabs
+  const ptabs = document.getElementById('ptabs');
+  PORTFOLIOS.forEach((p, i) => {
+    const t = document.createElement('div');
+    t.className = 'ptab' + (i === 0 ? ' active' : '');
+    t.id = 'ptab-' + p.id;
+    t.textContent = p.name;
+    t.onclick = () => switchPortfolio(p.id);
+    ptabs.appendChild(t);
+  });
+
+  // Panels
+  const container = document.getElementById('portfolio-panels');
+  PORTFOLIOS.forEach((p, pi) => {
+    const panel = document.createElement('div');
+    panel.className = 'portfolio-panel' + (pi === 0 ? ' active' : '');
+    panel.id = 'panel-' + p.id;
+
+    const totalCalls = p.tickers.length * 2;
+    const estMins = Math.ceil(totalCalls / 8) * 2;
+
+    panel.innerHTML = `
+      <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
+        <div class="portfolio-name">${p.name}</div>
+        <div style="font-size:11px;color:#484f58;">${p.tickers.length} holdings · ${totalCalls} API calls · ~${estMins} min to load</div>
+      </div>
+      <div class="summary-strip" id="summary-${p.id}">
+        <span><span class="sdot" style="background:#3fb950"></span> Above 200 SMA: <strong id="above200-${p.id}" style="color:#3fb950">—</strong></span>
+        <span><span class="sdot" style="background:#f85149"></span> Below 200 SMA: <strong id="below200-${p.id}" style="color:#f85149">—</strong></span>
+        <span><span class="sdot" style="background:#f85149"></span> Overbought RSI≥70: <strong id="overbought-${p.id}" style="color:#f85149">—</strong></span>
+        <span><span class="sdot" style="background:#3fb950"></span> Oversold RSI≤30: <strong id="oversold-${p.id}" style="color:#3fb950">—</strong></span>
+      </div>
+      <div class="stock-table-wrap">
+        <table id="table-${p.id}">
+          <thead>
+            <tr>
+              <th>Symbol</th>
+              <th>Name</th>
+              <th>Price</th>
+              <th>50-Day SMA</th>
+              <th>200-Day SMA</th>
+              <th>vs 200 SMA</th>
+              <th>Daily RSI</th>
+              <th>Weekly RSI</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-${p.id}">
+          </tbody>
+        </table>
+      </div>`;
+    container.appendChild(panel);
+
+    // Build rows
+    const tbody = panel.querySelector('#tbody-' + p.id);
+    p.tickers.forEach(({ sym, name }) => {
+      const safeId = sym.replace(/[^a-zA-Z0-9]/g, '_');
+      const tr = document.createElement('tr');
+      tr.id = 'row-' + p.id + '-' + safeId;
+      tr.innerHTML = `
+        <td class="sym-cell">${sym}</td>
+        <td class="name-cell">${name}</td>
+        <td><span class="val muted" id="${p.id}-${safeId}-price">—</span></td>
+        <td><span class="val muted" id="${p.id}-${safeId}-sma50">—</span></td>
+        <td><span class="val muted" id="${p.id}-${safeId}-sma200">—</span></td>
+        <td><span class="val muted" id="${p.id}-${safeId}-vs200">—</span></td>
+        <td><span class="rsi-badge muted" id="${p.id}-${safeId}-rsid">—</span></td>
+        <td><span class="rsi-badge muted" id="${p.id}-${safeId}-rsiw">—</span></td>
+        <td><span class="row-status" id="${p.id}-${safeId}-st">pending</span></td>`;
+      tbody.appendChild(tr);
+    });
+  });
+}
+
+// ── Switch portfolio ─────────────────────────────────────────────────────────
+function switchPortfolio(id) {
+  activePortfolioId = id;
+  document.querySelectorAll('.portfolio-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.ptab').forEach(t => t.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
+  document.getElementById('ptab-' + id).classList.add('active');
+  setStatus('Switched to ' + PORTFOLIOS.find(p => p.id === id).name + ' — click LOAD DATA to fetch', '');
+  setProgress(0, 1);
+  setETA('');
+}
+
+// ── Render one row ───────────────────────────────────────────────────────────
+function renderRow(portfolioId, sym, dailyData, weeklyData) {
+  const safeId = sym.replace(/[^a-zA-Z0-9]/g, '_');
+  const pid = portfolioId;
+
+  const dv = dailyData.values.slice().reverse();
+  const dc = dv.map(v => parseFloat(v.close));
+  const wv = weeklyData.values.slice().reverse();
+  const wc = wv.map(v => parseFloat(v.close));
+
+  const price  = dc[dc.length - 1];
+  const sma50  = calcSMA(dc, 50);
+  const sma200 = calcSMA(dc, 200);
+  const rsiD   = calcRSI(dc);
+  const rsiW   = calcRSI(wc);
+
+  const setVal = (id, txt, cls) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = txt;
+    el.className = (el.tagName === 'SPAN' && el.classList.contains('rsi-badge') ? 'rsi-badge' : 'val') + (cls ? ' ' + cls : '');
+  };
+
+  const setSpan = (id, txt, cls) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = txt;
+    el.className = 'val' + (cls ? ' ' + cls : '');
+  };
+
+  const setBadge = (id, txt, cls) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = txt;
+    el.className = 'rsi-badge' + (cls ? ' ' + cls : '');
+  };
+
+  setSpan(pid + '-' + safeId + '-price', fmtPrice(price));
+  if (sma50)  setSpan(pid + '-' + safeId + '-sma50',  fmtPrice(sma50),  price > sma50  ? 'green' : 'red');
+  if (sma200) {
+    setSpan(pid + '-' + safeId + '-sma200', fmtPrice(sma200), price > sma200 ? 'green' : 'red');
+    const pct = ((price - sma200) / sma200 * 100).toFixed(1);
+    setSpan(pid + '-' + safeId + '-vs200', (pct > 0 ? '+' : '') + pct + '%', pct > 0 ? 'green' : 'red');
+  }
+  if (rsiD !== null) setBadge(pid + '-' + safeId + '-rsid', rsiD.toFixed(1), rsiClass(rsiD));
+  if (rsiW !== null) setBadge(pid + '-' + safeId + '-rsiw', rsiW.toFixed(1), rsiClass(rsiW));
+
+  const st = document.getElementById(pid + '-' + safeId + '-st');
+  if (st) { st.textContent = '✓ done'; st.className = 'row-status done'; }
+}
+
+// ── Update summary strip ─────────────────────────────────────────────────────
+function updateSummary(portfolioId) {
+  const p = PORTFOLIOS.find(x => x.id === portfolioId);
+  let above = 0, below = 0, ob = 0, os = 0;
+  p.tickers.forEach(({ sym }) => {
+    const safeId = sym.replace(/[^a-zA-Z0-9]/g, '_');
+    const vs = document.getElementById(portfolioId + '-' + safeId + '-vs200');
+    const rsid = document.getElementById(portfolioId + '-' + safeId + '-rsid');
+    if (vs && vs.classList.contains('green')) above++;
+    if (vs && vs.classList.contains('red'))   below++;
+    if (rsid) {
+      const v = parseFloat(rsid.textContent);
+      if (!isNaN(v)) {
+        if (v >= 70) ob++;
+        if (v <= 30) os++;
+      }
+    }
+  });
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  set('above200-' + portfolioId, above);
+  set('below200-' + portfolioId, below);
+  set('overbought-' + portfolioId, ob);
+  set('oversold-'   + portfolioId, os);
+}
+
+// ── Main fetch ───────────────────────────────────────────────────────────────
+async function fetchCurrentPortfolio() {
+  const portfolio = PORTFOLIOS.find(p => p.id === activePortfolioId);
+  const btn = document.getElementById('fetch-btn');
+  btn.disabled = true;
+  fetchAbort = false;
+  creditsUsed = 0;
+  updCredits();
+
+  const total = portfolio.tickers.length * 2;
+  let done = 0;
+  setProgress(0, total);
+
+  // Reset all rows to pending
+  portfolio.tickers.forEach(({ sym }) => {
+    const safeId = sym.replace(/[^a-zA-Z0-9]/g, '_');
+    const st = document.getElementById(portfolio.id + '-' + safeId + '-st');
+    if (st) { st.textContent = 'pending'; st.className = 'row-status'; }
+    ['price','sma50','sma200','vs200'].forEach(f => {
+      const el = document.getElementById(portfolio.id + '-' + safeId + '-' + f);
+      if (el) { el.textContent = '—'; el.className = 'val muted'; }
+    });
+    ['rsid','rsiw'].forEach(f => {
+      const el = document.getElementById(portfolio.id + '-' + safeId + '-' + f);
+      if (el) { el.textContent = '—'; el.className = 'rsi-badge muted'; }
+    });
+  });
+
+  try {
+    for (let i = 0; i < portfolio.tickers.length; i++) {
+      const { sym, name } = portfolio.tickers[i];
+      const safeId = sym.replace(/[^a-zA-Z0-9]/g, '_');
+
+      if (fetchAbort) break;
+
+      // Mark row loading
+      const st = document.getElementById(portfolio.id + '-' + safeId + '-st');
+      if (st) { st.textContent = 'loading…'; st.className = 'row-status loading'; }
+
+      // ETA calc
+      const remaining = portfolio.tickers.length - i;
+      const callsLeft = remaining * 2;
+      const cooldownsLeft = Math.max(0, Math.floor((creditsUsed + callsLeft - 1) / 8));
+      const estSecs = Math.ceil(callsLeft / 8) * 5 + cooldownsLeft * 120;
+      const estMins = Math.ceil(estSecs / 60);
+      setETA(estMins > 1 ? '~' + estMins + 'min remaining' : '< 1 min remaining');
+
+      setStatus('Fetching ' + sym + ' (' + (i + 1) + '/' + portfolio.tickers.length + ')...', 'loading');
+
+      let daily, weekly;
+      try {
+        daily = await apiGet(sym, '1day');
+        done++; setProgress(done, total);
+        weekly = await apiGet(sym, '1week');
+        done++; setProgress(done, total);
+        renderRow(portfolio.id, sym, daily, weekly);
+        updateSummary(portfolio.id);
+      } catch (rowErr) {
+        if (rowErr.message === 'ABORTED') break;
+        if (st) { st.textContent = '✗ ' + rowErr.message.slice(0, 20); st.className = 'row-status error'; }
+        done += 2; setProgress(done, total);
+      }
+    }
+
+    setStatus('Done — ' + portfolio.name + ' loaded at ' + new Date().toLocaleTimeString(), '');
+    setETA('');
+  } catch (err) {
+    setStatus('Error: ' + err.message, 'error');
+  }
+
+  btn.disabled = false;
+  setProgress(total, total);
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+buildUI();
+</script>
+</body>
+</html>
