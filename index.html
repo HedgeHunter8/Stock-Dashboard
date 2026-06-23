@@ -175,7 +175,7 @@ tbody td:not(:first-child) { text-align: right; }
   <div class="top-bar">
     <div class="title-block">
       <div class="main-title">▍ PORTFOLIO DASHBOARD</div>
-      <div class="sub-title">Powered by Twelve Data · 8 credits/min rate limit auto-managed</div>
+      <div class="sub-title">Powered by Twelve Data · 8 credits/min · 61s cooldown auto-managed</div>
     </div>
     <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
       <div class="portfolio-tabs" id="ptabs"></div>
@@ -225,6 +225,45 @@ const PORTFOLIOS = [
       { sym: 'ZVRA',   name: 'Zevra Therapeutics Inc.' },
       { sym: 'ETH/USD',name: 'Ethereum (ETH/USD)' },
       { sym: 'IBIT',   name: 'iShares Bitcoin Trust ETF' },
+    ]
+  },
+  {
+    id: 'dividendgrowth',
+    name: 'Dividend Growth Portfolio',
+    tickers: [
+      { sym: 'AAPL',  name: 'Apple Inc.' },
+      { sym: 'ABBV',  name: 'AbbVie Inc.' },
+      { sym: 'ACN',   name: 'Accenture plc' },
+      { sym: 'AVGO',  name: 'Broadcom Inc.' },
+      { sym: 'BAC',   name: 'Bank of America Corp.' },
+      { sym: 'CB',    name: 'Chubb Limited' },
+      { sym: 'CMCSA', name: 'Comcast Corp.' },
+      { sym: 'CVX',   name: 'Chevron Corp.' },
+      { sym: 'ELV',   name: 'Elevance Health Inc.' },
+      { sym: 'EOG',   name: 'EOG Resources Inc.' },
+      { sym: 'HD',    name: 'The Home Depot Inc.' },
+      { sym: 'HON',   name: 'Honeywell International Inc.' },
+      { sym: 'JNJ',   name: 'Johnson & Johnson' },
+      { sym: 'JPM',   name: 'JPMorgan Chase & Co.' },
+      { sym: 'KO',    name: 'The Coca-Cola Co.' },
+      { sym: 'MA',    name: 'Mastercard Inc.' },
+      { sym: 'MCD',   name: "McDonald's Corp." },
+      { sym: 'MDT',   name: 'Medtronic plc' },
+      { sym: 'MRK',   name: 'Merck & Co. Inc.' },
+      { sym: 'MRSH',  name: 'Marsh & McLennan Companies' },
+      { sym: 'MSFT',  name: 'Microsoft Corp.' },
+      { sym: 'NEE',   name: 'NextEra Energy Inc.' },
+      { sym: 'PEP',   name: 'PepsiCo Inc.' },
+      { sym: 'PFE',   name: 'Pfizer Inc.' },
+      { sym: 'PG',    name: 'Procter & Gamble Co.' },
+      { sym: 'PM',    name: 'Philip Morris International' },
+      { sym: 'SCHW',  name: 'Charles Schwab Corp.' },
+      { sym: 'TXN',   name: 'Texas Instruments Inc.' },
+      { sym: 'UNH',   name: 'UnitedHealth Group Inc.' },
+      { sym: 'UNP',   name: 'Union Pacific Corp.' },
+      { sym: 'V',     name: 'Visa Inc.' },
+      { sym: 'WMT',   name: 'Walmart Inc.' },
+      { sym: 'XOM',   name: 'Exxon Mobil Corp.' },
     ]
   },
   {
@@ -325,7 +364,7 @@ function doCooldown() {
     cooldownActive = true;
     creditsUsed = 0;
     updCredits();
-    let secs = 120;
+    let secs = 61;
     const tick = () => {
       if (fetchAbort) { cooldownActive = false; resolve(); return; }
       setStatus('Rate limit — cooldown: ' + secs + 's remaining before continuing...', 'cooldown');
@@ -561,7 +600,7 @@ async function fetchCurrentPortfolio() {
       const remaining = portfolio.tickers.length - i;
       const callsLeft = remaining * 2;
       const cooldownsLeft = Math.max(0, Math.floor((creditsUsed + callsLeft - 1) / 8));
-      const estSecs = Math.ceil(callsLeft / 8) * 5 + cooldownsLeft * 120;
+      const estSecs = Math.ceil(callsLeft / 8) * 5 + cooldownsLeft * 61;
       const estMins = Math.ceil(estSecs / 60);
       setETA(estMins > 1 ? '~' + estMins + 'min remaining' : '< 1 min remaining');
 
