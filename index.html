@@ -156,6 +156,14 @@ tbody td:not(:first-child) { text-align: right; }
 .row-status.done    { color: #3fb950; }
 .row-status.error   { color: #f85149; }
 
+/* sortable headers */
+th.sortable { cursor: pointer; user-select: none; }
+th.sortable:hover { color: #c9d1d9; background: #1c2230; }
+th.sortable .sort-icon { margin-left: 5px; opacity: 0.35; font-size: 9px; }
+th.sortable.asc  .sort-icon::after { content: '▲'; opacity: 1; color: #58a6ff; }
+th.sortable.desc .sort-icon::after { content: '▼'; opacity: 1; color: #58a6ff; }
+th.sortable:not(.asc):not(.desc) .sort-icon::after { content: '⇅'; }
+
 /* summary strip */
 .summary-strip {
   display: flex;
@@ -308,8 +316,12 @@ const PORTFOLIOS = [
 ];
 
 // ── State ────────────────────────────────────────────────────────────────────
-let creditsUsed = 0;
-let cooldownActive = false;
+// Sliding window: timestamps (ms) of every API call made this session.
+// Before each call, prune entries older than 61s. If window is full, wait.
+const callTimestamps = [];
+const WINDOW_MS = 61000;
+const MAX_PER_WINDOW = 8;
+
 let activePortfolioId = PORTFOLIOS[0].id;
 let fetchAbort = false;
 
@@ -320,7 +332,9 @@ function setStatus(msg, state) {
   d.className = 'dot' + (state ? ' ' + state : '');
 }
 function updCredits() {
-  document.getElementById('scredits').textContent = 'Credits: ' + creditsUsed + '/8';
+  const now = Date.now();
+  const recent = callTimestamps.filter(t => now - t < WINDOW_MS).length;
+  document.getElementById('scredits').textContent = 'Credits: ' + recent + '/8';
 }
 function setProgress(n, total) {
   document.getElementById('progress').style.width = (total > 0 ? Math.round(n / total * 100) : 0) + '%';
@@ -359,38 +373,101 @@ function fmtPrice(p) {
 }
 
 // ── Rate-limited API call ────────────────────────────────────────────────────
-function doCooldown() {
-  return new Promise(resolve => {
-    cooldownActive = true;
-    creditsUsed = 0;
-    updCredits();
-    let secs = 61;
-    const tick = () => {
-      if (fetchAbort) { cooldownActive = false; resolve(); return; }
-      setStatus('Rate limit — cooldown: ' + secs + 's remaining before continuing...', 'cooldown');
-      if (secs <= 0) { cooldownActive = false; resolve(); return; }
-      secs--;
-      setTimeout(tick, 1000);
-    };
-    tick();
-  });
+// Uses a sliding 61-second window. Waits automatically if 8 calls have been
+// made in the last 61s, regardless of session resets or multiple Load clicks.
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function apiGet(sym, interval) {
-  if (creditsUsed >= 8) await doCooldown();
+async function waitForSlot() {
+  // Show countdown while waiting for the oldest call to age out of the window
+  while (true) {
+    if (fetchAbort) throw new Error('ABORTED');
+    const now = Date.now();
+    // Prune timestamps outside the window
+    while (callTimestamps.length && now - callTimestamps[0] >= WINDOW_MS) {
+      callTimestamps.shift();
+    }
+    if (callTimestamps.length < MAX_PER_WINDOW) return; // slot available
+    // Calculate wait: how long until oldest call exits the window
+    const waitMs = WINDOW_MS - (now - callTimestamps[0]) + 100; // +100ms buffer
+    const waitSecs = Math.ceil(waitMs / 1000);
+    setStatus('Rate limit — waiting ' + waitSecs + 's for next available slot...', 'cooldown');
+    updCredits();
+    await sleep(Math.min(waitMs, 1000)); // check every second
+  }
+}
+
+async function apiGet(sym, interval, retries) {
+  retries = retries || 0;
+  await waitForSlot();
   if (fetchAbort) throw new Error('ABORTED');
+
   const url = 'https://api.twelvedata.com/time_series'
     + '?symbol=' + encodeURIComponent(sym)
     + '&interval=' + interval
-    + '&outputsize=' + (interval === '1day' ? 250 : 100)
+    + '&outputsize=' + (interval === '1day' ? 250 : 200)
     + '&apikey=' + API_KEY;
+
   const res = await fetch(url);
-  if (!res.ok) throw new Error('HTTP ' + res.status);
+
+  // 429 = server-side rate limit hit — wait 61s and retry (up to 3 times)
+  if (res.status === 429) {
+    if (retries >= 3) throw new Error('429 after 3 retries for ' + sym);
+    let secs = 61;
+    const countdown = async () => {
+      while (secs > 0) {
+        if (fetchAbort) throw new Error('ABORTED');
+        setStatus('429 rate limit from server — waiting ' + secs + 's before retry...', 'cooldown');
+        await sleep(1000);
+        secs--;
+      }
+    };
+    await countdown();
+    return apiGet(sym, interval, retries + 1);
+  }
+
+  if (!res.ok) throw new Error('HTTP ' + res.status + ' for ' + sym);
   const data = await res.json();
   if (data.status === 'error') throw new Error(data.message);
-  creditsUsed++;
+
+  // Record this successful call in the sliding window
+  callTimestamps.push(Date.now());
   updCredits();
   return data;
+}
+
+// ── Sort table ───────────────────────────────────────────────────────────────
+function sortTable(th) {
+  const col = th.getAttribute('data-col');
+  const pid = th.getAttribute('data-pid');
+  const tbody = document.getElementById('tbody-' + pid);
+  if (!tbody) return;
+
+  // Determine direction
+  const wasAsc = th.classList.contains('asc');
+  const isAsc  = !wasAsc;
+
+  // Clear all sort indicators in this table
+  th.closest('thead').querySelectorAll('th.sortable').forEach(h => {
+    h.classList.remove('asc', 'desc');
+  });
+  th.classList.add(isAsc ? 'asc' : 'desc');
+
+  const rows = Array.from(tbody.querySelectorAll('tr'));
+  rows.sort((a, b) => {
+    const tdA = a.querySelector('[id$="-' + col + '"]');
+    const tdB = b.querySelector('[id$="-' + col + '"]');
+    const valA = tdA ? parseFloat(tdA.parentElement.getAttribute('data-val')) : NaN;
+    const valB = tdB ? parseFloat(tdB.parentElement.getAttribute('data-val')) : NaN;
+    // Push rows with no data to the bottom always
+    if (isNaN(valA) && isNaN(valB)) return 0;
+    if (isNaN(valA)) return 1;
+    if (isNaN(valB)) return -1;
+    return isAsc ? valA - valB : valB - valA;
+  });
+  rows.forEach(r => tbody.appendChild(r));
 }
 
 // ── Build DOM ────────────────────────────────────────────────────────────────
@@ -433,12 +510,12 @@ function buildUI() {
             <tr>
               <th>Symbol</th>
               <th>Name</th>
-              <th>Price</th>
-              <th>50-Day SMA</th>
-              <th>200-Day SMA</th>
-              <th>vs 200 SMA</th>
-              <th>Daily RSI</th>
-              <th>Weekly RSI</th>
+              <th class="sortable" data-col="sma50" data-pid="${p.id}" onclick="sortTable(this)">50-Day SMA<span class="sort-icon"></span></th>
+              <th class="sortable" data-col="sma200" data-pid="${p.id}" onclick="sortTable(this)">200-Day SMA<span class="sort-icon"></span></th>
+              <th class="sortable" data-col="vs200" data-pid="${p.id}" onclick="sortTable(this)">vs 200 SMA<span class="sort-icon"></span></th>
+              <th class="sortable" data-col="sma200w" data-pid="${p.id}" onclick="sortTable(this)">200-Week SMA<span class="sort-icon"></span></th>
+              <th class="sortable" data-col="rsid" data-pid="${p.id}" onclick="sortTable(this)">Daily RSI<span class="sort-icon"></span></th>
+              <th class="sortable" data-col="rsiw" data-pid="${p.id}" onclick="sortTable(this)">Weekly RSI<span class="sort-icon"></span></th>
               <th>Status</th>
             </tr>
           </thead>
@@ -457,12 +534,12 @@ function buildUI() {
       tr.innerHTML = `
         <td class="sym-cell">${sym}</td>
         <td class="name-cell">${name}</td>
-        <td><span class="val muted" id="${p.id}-${safeId}-price">—</span></td>
-        <td><span class="val muted" id="${p.id}-${safeId}-sma50">—</span></td>
-        <td><span class="val muted" id="${p.id}-${safeId}-sma200">—</span></td>
-        <td><span class="val muted" id="${p.id}-${safeId}-vs200">—</span></td>
-        <td><span class="rsi-badge muted" id="${p.id}-${safeId}-rsid">—</span></td>
-        <td><span class="rsi-badge muted" id="${p.id}-${safeId}-rsiw">—</span></td>
+        <td data-val=""><span class="val muted" id="${p.id}-${safeId}-sma50">—</span></td>
+        <td data-val=""><span class="val muted" id="${p.id}-${safeId}-sma200">—</span></td>
+        <td data-val=""><span class="val muted" id="${p.id}-${safeId}-vs200">—</span></td>
+        <td data-val=""><span class="val muted" id="${p.id}-${safeId}-sma200w">—</span></td>
+        <td data-val=""><span class="rsi-badge muted" id="${p.id}-${safeId}-rsid">—</span></td>
+        <td data-val=""><span class="rsi-badge muted" id="${p.id}-${safeId}-rsiw">—</span></td>
         <td><span class="row-status" id="${p.id}-${safeId}-st">pending</span></td>`;
       tbody.appendChild(tr);
     });
@@ -491,18 +568,12 @@ function renderRow(portfolioId, sym, dailyData, weeklyData) {
   const wv = weeklyData.values.slice().reverse();
   const wc = wv.map(v => parseFloat(v.close));
 
-  const price  = dc[dc.length - 1];
-  const sma50  = calcSMA(dc, 50);
-  const sma200 = calcSMA(dc, 200);
-  const rsiD   = calcRSI(dc);
-  const rsiW   = calcRSI(wc);
-
-  const setVal = (id, txt, cls) => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.textContent = txt;
-    el.className = (el.tagName === 'SPAN' && el.classList.contains('rsi-badge') ? 'rsi-badge' : 'val') + (cls ? ' ' + cls : '');
-  };
+  const price   = dc[dc.length - 1];
+  const sma50   = calcSMA(dc, 50);
+  const sma200  = calcSMA(dc, 200);
+  const sma200w = calcSMA(wc, 200); // 200-week SMA
+  const rsiD    = calcRSI(dc);
+  const rsiW    = calcRSI(wc);
 
   const setSpan = (id, txt, cls) => {
     const el = document.getElementById(id);
@@ -510,23 +581,41 @@ function renderRow(portfolioId, sym, dailyData, weeklyData) {
     el.textContent = txt;
     el.className = 'val' + (cls ? ' ' + cls : '');
   };
-
   const setBadge = (id, txt, cls) => {
     const el = document.getElementById(id);
     if (!el) return;
     el.textContent = txt;
     el.className = 'rsi-badge' + (cls ? ' ' + cls : '');
   };
+  // Store numeric sort value on the parent <td>
+  const setTdVal = (id, num) => {
+    const el = document.getElementById(id);
+    if (el && el.parentElement) el.parentElement.setAttribute('data-val', isNaN(num) ? '' : num);
+  };
 
-  setSpan(pid + '-' + safeId + '-price', fmtPrice(price));
-  if (sma50)  setSpan(pid + '-' + safeId + '-sma50',  fmtPrice(sma50),  price > sma50  ? 'green' : 'red');
-  if (sma200) {
-    setSpan(pid + '-' + safeId + '-sma200', fmtPrice(sma200), price > sma200 ? 'green' : 'red');
-    const pct = ((price - sma200) / sma200 * 100).toFixed(1);
-    setSpan(pid + '-' + safeId + '-vs200', (pct > 0 ? '+' : '') + pct + '%', pct > 0 ? 'green' : 'red');
+  if (sma50) {
+    setSpan(pid+'-'+safeId+'-sma50', fmtPrice(sma50), price > sma50 ? 'green' : 'red');
+    setTdVal(pid+'-'+safeId+'-sma50', sma50);
   }
-  if (rsiD !== null) setBadge(pid + '-' + safeId + '-rsid', rsiD.toFixed(1), rsiClass(rsiD));
-  if (rsiW !== null) setBadge(pid + '-' + safeId + '-rsiw', rsiW.toFixed(1), rsiClass(rsiW));
+  if (sma200) {
+    setSpan(pid+'-'+safeId+'-sma200', fmtPrice(sma200), price > sma200 ? 'green' : 'red');
+    setTdVal(pid+'-'+safeId+'-sma200', sma200);
+    const pct = ((price - sma200) / sma200 * 100);
+    setSpan(pid+'-'+safeId+'-vs200', (pct > 0 ? '+' : '') + pct.toFixed(1) + '%', pct > 0 ? 'green' : 'red');
+    setTdVal(pid+'-'+safeId+'-vs200', pct);
+  }
+  if (sma200w) {
+    setSpan(pid+'-'+safeId+'-sma200w', fmtPrice(sma200w), price > sma200w ? 'green' : 'red');
+    setTdVal(pid+'-'+safeId+'-sma200w', sma200w);
+  }
+  if (rsiD !== null) {
+    setBadge(pid+'-'+safeId+'-rsid', rsiD.toFixed(1), rsiClass(rsiD));
+    setTdVal(pid+'-'+safeId+'-rsid', rsiD);
+  }
+  if (rsiW !== null) {
+    setBadge(pid+'-'+safeId+'-rsiw', rsiW.toFixed(1), rsiClass(rsiW));
+    setTdVal(pid+'-'+safeId+'-rsiw', rsiW);
+  }
 
   const st = document.getElementById(pid + '-' + safeId + '-st');
   if (st) { st.textContent = '✓ done'; st.className = 'row-status done'; }
@@ -563,7 +652,6 @@ async function fetchCurrentPortfolio() {
   const btn = document.getElementById('fetch-btn');
   btn.disabled = true;
   fetchAbort = false;
-  creditsUsed = 0;
   updCredits();
 
   const total = portfolio.tickers.length * 2;
@@ -575,13 +663,13 @@ async function fetchCurrentPortfolio() {
     const safeId = sym.replace(/[^a-zA-Z0-9]/g, '_');
     const st = document.getElementById(portfolio.id + '-' + safeId + '-st');
     if (st) { st.textContent = 'pending'; st.className = 'row-status'; }
-    ['price','sma50','sma200','vs200'].forEach(f => {
+    ['sma50','sma200','vs200','sma200w'].forEach(f => {
       const el = document.getElementById(portfolio.id + '-' + safeId + '-' + f);
-      if (el) { el.textContent = '—'; el.className = 'val muted'; }
+      if (el) { el.textContent = '—'; el.className = 'val muted'; if (el.parentElement) el.parentElement.setAttribute('data-val',''); }
     });
     ['rsid','rsiw'].forEach(f => {
       const el = document.getElementById(portfolio.id + '-' + safeId + '-' + f);
-      if (el) { el.textContent = '—'; el.className = 'rsi-badge muted'; }
+      if (el) { el.textContent = '—'; el.className = 'rsi-badge muted'; if (el.parentElement) el.parentElement.setAttribute('data-val',''); }
     });
   });
 
@@ -599,8 +687,9 @@ async function fetchCurrentPortfolio() {
       // ETA calc
       const remaining = portfolio.tickers.length - i;
       const callsLeft = remaining * 2;
-      const cooldownsLeft = Math.max(0, Math.floor((creditsUsed + callsLeft - 1) / 8));
-      const estSecs = Math.ceil(callsLeft / 8) * 5 + cooldownsLeft * 61;
+      const recentCalls = callTimestamps.filter(t => Date.now() - t < WINDOW_MS).length;
+      const cooldownsLeft = Math.max(0, Math.floor((recentCalls + callsLeft - 1) / 8));
+      const estSecs = Math.ceil(callsLeft / 8) * 5 + cooldownsLeft * WINDOW_MS / 1000;
       const estMins = Math.ceil(estSecs / 60);
       setETA(estMins > 1 ? '~' + estMins + 'min remaining' : '< 1 min remaining');
 
