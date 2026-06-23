@@ -175,6 +175,38 @@ th.sortable:not(.asc):not(.desc) .sort-icon::after { content: '⇅'; }
 }
 .summary-strip span { display: flex; align-items: center; gap: 5px; }
 .sdot { width: 7px; height: 7px; border-radius: 50%; }
+
+/* ── Chart drawer ── */
+.chart-drawer { background: #0d1117; }
+.chart-drawer td { padding: 0; }
+.chart-drawer .drawer-inner { display: none; }
+.chart-drawer.open .drawer-inner { display: block; padding: 20px; }
+.chart-drawer.open { border-top: 1px solid #388bfd; border-bottom: 1px solid #30363d; }
+.drawer-header {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;
+}
+.drawer-title { font-size: 15px; font-weight: 700; color: #e6edf3; letter-spacing: 2px; }
+.drawer-close {
+  background: #21262d; border: 1px solid #30363d; border-radius: 6px;
+  color: #8b949e; font-family: 'Courier New', monospace; font-size: 12px;
+  padding: 5px 14px; cursor: pointer; transition: all 0.15s;
+}
+.drawer-close:hover { border-color: #f85149; color: #f85149; }
+.charts-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+}
+@media (max-width: 800px) { .charts-grid { grid-template-columns: 1fr; } }
+.chart-panel {
+  background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 14px;
+}
+.chart-panel-title { font-size: 10px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
+.chart-legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 10px; color: #8b949e; margin-bottom: 8px; }
+.chart-legend span { display: flex; align-items: center; gap: 4px; }
+.cleg { width: 18px; height: 2px; border-radius: 1px; }
+.chart-hint { font-size: 10px; color: #484f58; margin-top: 12px; }
+tbody tr.data-row { cursor: pointer; }
+tbody tr.data-row:hover { background: #1c2230; }
+tbody tr.data-row.expanded { background: #161b22; }
 </style>
 </head>
 <body>
@@ -202,6 +234,7 @@ th.sortable:not(.asc):not(.desc) .sort-icon::after { content: '⇅'; }
   <div id="portfolio-panels"></div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
 const API_KEY = 'b6397bcea4254ba6bd695387a4e002be';
 
@@ -324,6 +357,8 @@ const MAX_PER_WINDOW = 8;
 
 let activePortfolioId = PORTFOLIOS[0].id;
 let fetchAbort = false;
+const tickerData = {}; // stores daily closes + volume keyed by sym
+const openDrawer = { sym: null, charts: [] }; // track open drawer
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function setStatus(msg, state) {
@@ -470,6 +505,257 @@ function sortTable(th) {
   rows.forEach(r => tbody.appendChild(r));
 }
 
+// ── Chart math helpers ───────────────────────────────────────────────────────
+function calcEMA(arr, period) {
+  if (arr.length < period) return [];
+  const k = 2 / (period + 1);
+  const result = new Array(arr.length).fill(null);
+  // Seed with SMA
+  let seed = arr.slice(0, period).reduce((a,b) => a+b, 0) / period;
+  result[period - 1] = seed;
+  for (let i = period; i < arr.length; i++) {
+    result[i] = arr[i] * k + result[i-1] * (1 - k);
+  }
+  return result;
+}
+
+function calcMACD(closes) {
+  const ema12 = calcEMA(closes, 12);
+  const ema26 = calcEMA(closes, 26);
+  const macdLine = closes.map((_, i) =>
+    ema12[i] !== null && ema26[i] !== null ? ema12[i] - ema26[i] : null
+  );
+  // Signal = 9-period EMA of macdLine (skip nulls)
+  const validMacd = macdLine.filter(v => v !== null);
+  const signalFull = calcEMA(validMacd, 9);
+  // Re-map signal back to full length
+  const signal = new Array(closes.length).fill(null);
+  let si = 0;
+  for (let i = 0; i < closes.length; i++) {
+    if (macdLine[i] !== null) { signal[i] = signalFull[si] || null; si++; }
+  }
+  const histogram = closes.map((_, i) =>
+    macdLine[i] !== null && signal[i] !== null ? macdLine[i] - signal[i] : null
+  );
+  return { macdLine, signal, histogram };
+}
+
+function calcRSIFull(closes, period) {
+  period = period || 14;
+  const result = new Array(closes.length).fill(null);
+  if (closes.length < period + 1) return result;
+  let gains = 0, losses = 0;
+  for (let i = 1; i <= period; i++) {
+    const d = closes[i] - closes[i-1];
+    if (d >= 0) gains += d; else losses -= d;
+  }
+  let ag = gains / period, al = losses / period;
+  const rsi = (ag, al) => al === 0 ? 100 : 100 - (100 / (1 + ag/al));
+  result[period] = rsi(ag, al);
+  for (let i = period + 1; i < closes.length; i++) {
+    const d = closes[i] - closes[i-1];
+    ag = (ag * (period-1) + Math.max(d,0)) / period;
+    al = (al * (period-1) + Math.max(-d,0)) / period;
+    result[i] = rsi(ag, al);
+  }
+  return result;
+}
+
+function calcSMAFull(closes, period) {
+  return closes.map((_, i) =>
+    i >= period - 1 ? closes.slice(i - period + 1, i + 1).reduce((a,b)=>a+b,0)/period : null
+  );
+}
+
+// ── Drawer toggle ─────────────────────────────────────────────────────────────
+function destroyOpenCharts() {
+  openDrawer.charts.forEach(c => { try { c.destroy(); } catch(e){} });
+  openDrawer.charts = [];
+}
+
+function toggleDrawer(pid, sym, name, rowEl) {
+  const safeId = sym.replace(/[^a-zA-Z0-9]/g, '_');
+  const drawerId = 'drawer-' + pid + '-' + safeId;
+  const drawerEl = document.getElementById(drawerId);
+  if (!drawerEl) return;
+
+  const isOpen = drawerEl.classList.contains('open');
+
+  // Close any open drawer first
+  destroyOpenCharts();
+  document.querySelectorAll('.chart-drawer.open').forEach(d => {
+    d.classList.remove('open');
+    const inner = d.querySelector('.drawer-inner');
+    if (inner) inner.innerHTML = '';
+  });
+  document.querySelectorAll('tr.data-row.expanded').forEach(r => r.classList.remove('expanded'));
+
+  if (isOpen) return; // was open — just close it
+
+  // No data yet
+  if (!tickerData[sym]) {
+    const inner = document.getElementById('drawerinner-' + pid + '-' + safeId);
+    if (inner) inner.innerHTML = '<div style="padding:20px;color:#484f58;font-size:12px;">⏳ Data not loaded yet — click LOAD DATA first</div>';
+    drawerEl.classList.add('open');
+    rowEl.classList.add('expanded');
+    return;
+  }
+
+  drawerEl.classList.add('open');
+  rowEl.classList.add('expanded');
+  openDrawer.sym = sym;
+
+  const inner = document.getElementById('drawerinner-' + pid + '-' + safeId);
+  const { closes, volumes, dates } = tickerData[sym];
+  const N = 100; // show last 100 days
+  const c = closes.slice(-N);
+  const v = volumes.slice(-N);
+  const d = dates.slice(-N);
+  const offset = closes.length - N;
+
+  // Compute indicators over full history, then slice last N
+  const sma50full  = calcSMAFull(closes, 50);
+  const sma200full = calcSMAFull(closes, 200);
+  const rsiFull    = calcRSIFull(closes);
+  const { macdLine, signal, histogram } = calcMACD(closes);
+  const vol20avg   = closes.map((_, i) => {
+    if (i < 19) return null;
+    return volumes.slice(i-19, i+1).reduce((a,b)=>a+b,0)/20;
+  });
+
+  const sma50s  = sma50full.slice(-N);
+  const sma200s = sma200full.slice(-N);
+  const rsiS    = rsiFull.slice(-N);
+  const macdS   = macdLine.slice(-N);
+  const sigS    = signal.slice(-N);
+  const histS   = histogram.slice(-N);
+  const vol20s  = vol20avg.slice(-N);
+
+  const upDays   = c.map((p,i) => i === 0 ? false : p >= c[i-1]);
+  const volColors = v.map((_, i) => upDays[i] ? 'rgba(63,185,80,0.7)' : 'rgba(248,81,73,0.7)');
+  const histColors = histS.map(h => h === null ? 'transparent' : h >= 0 ? 'rgba(63,185,80,0.8)' : 'rgba(248,81,73,0.8)');
+
+  inner.innerHTML = `
+    <div class="drawer-header">
+      <div class="drawer-title">${sym} <span style="font-size:12px;color:#8b949e;font-weight:400;letter-spacing:0">${name}</span></div>
+      <button class="drawer-close" onclick="closeDrawer('${pid}','${safeId}','${drawerId}')">✕ Close</button>
+    </div>
+    <div class="charts-grid">
+      <div class="chart-panel">
+        <div class="chart-panel-title">Price + Moving Averages</div>
+        <div class="chart-legend">
+          <span><span class="cleg" style="background:#58a6ff"></span>Price</span>
+          <span><span class="cleg" style="background:#f0883e"></span>50-Day SMA</span>
+          <span><span class="cleg" style="background:#bc8cff"></span>200-Day SMA</span>
+        </div>
+        <div style="position:relative;height:220px"><canvas id="dc-price-${safeId}"></canvas></div>
+      </div>
+      <div class="chart-panel">
+        <div class="chart-panel-title">Volume (Last 100 Days)</div>
+        <div class="chart-legend">
+          <span><span class="cleg" style="background:#3fb950"></span>Up Day</span>
+          <span><span class="cleg" style="background:#f85149"></span>Down Day</span>
+          <span><span class="cleg" style="background:#d29922"></span>20-Day Avg</span>
+        </div>
+        <div style="position:relative;height:220px"><canvas id="dc-vol-${safeId}"></canvas></div>
+      </div>
+      <div class="chart-panel">
+        <div class="chart-panel-title">MACD (12, 26, 9)</div>
+        <div class="chart-legend">
+          <span><span class="cleg" style="background:#58a6ff"></span>MACD</span>
+          <span><span class="cleg" style="background:#f0883e"></span>Signal</span>
+          <span><span class="cleg" style="background:#3fb950"></span>Histogram</span>
+        </div>
+        <div style="position:relative;height:220px"><canvas id="dc-macd-${safeId}"></canvas></div>
+      </div>
+      <div class="chart-panel">
+        <div class="chart-panel-title">RSI (14-Period Daily)</div>
+        <div class="chart-legend">
+          <span><span class="cleg" style="background:#3fb950"></span>RSI</span>
+          <span style="color:#f85149">▲ 70 Overbought</span>
+          <span style="color:#3fb950">▼ 30 Oversold</span>
+        </div>
+        <div style="position:relative;height:220px"><canvas id="dc-rsi-${safeId}"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-hint">Click any row again to close · Data shows last 100 trading days</div>`;
+
+  // Chart defaults
+  const xAxis = { ticks: { color: '#8b949e', maxTicksLimit: 8, font: { size: 9 } }, grid: { color: '#1e242c' } };
+  const yAxis = (cb) => ({ ticks: { color: '#8b949e', font: { size: 9 }, callback: cb || (v => v) }, grid: { color: '#1e242c' } });
+  const noLegend = { legend: { display: false } };
+
+  // Price chart
+  const pc = new Chart(document.getElementById('dc-price-'+safeId), {
+    type: 'line',
+    data: { labels: d, datasets: [
+      { label:'Price',   data:c,     borderColor:'#58a6ff', borderWidth:1.5, pointRadius:0, tension:0.1, fill:false },
+      { label:'50 SMA',  data:sma50s, borderColor:'#f0883e', borderWidth:1.5, pointRadius:0, fill:false },
+      { label:'200 SMA', data:sma200s,borderColor:'#bc8cff', borderWidth:1.5, pointRadius:0, fill:false }
+    ]},
+    options: { responsive:true, maintainAspectRatio:false, plugins:noLegend,
+      scales:{ x:xAxis, y:yAxis(v=>'$'+v.toFixed(0)) }}
+  });
+
+  // Volume chart
+  const vc = new Chart(document.getElementById('dc-vol-'+safeId), {
+    type: 'bar',
+    data: { labels: d, datasets: [
+      { label:'Volume', data:v, backgroundColor:volColors, borderWidth:0 },
+      { label:'20d Avg', data:vol20s, type:'line', borderColor:'#d29922',
+        borderWidth:1.5, borderDash:[4,3], pointRadius:0, fill:false }
+    ]},
+    options: { responsive:true, maintainAspectRatio:false, plugins:noLegend,
+      scales:{ x:xAxis, y:yAxis(v => v >= 1e6 ? (v/1e6).toFixed(1)+'M' : v >= 1e3 ? (v/1e3).toFixed(0)+'K' : v) }}
+  });
+
+  // MACD chart
+  const mc = new Chart(document.getElementById('dc-macd-'+safeId), {
+    type: 'bar',
+    data: { labels: d, datasets: [
+      { label:'Histogram', data:histS, backgroundColor:histColors, borderWidth:0, order:2 },
+      { label:'MACD',   data:macdS, type:'line', borderColor:'#58a6ff', borderWidth:1.5, pointRadius:0, fill:false, order:1 },
+      { label:'Signal', data:sigS,  type:'line', borderColor:'#f0883e', borderWidth:1.5, pointRadius:0, fill:false, order:1 }
+    ]},
+    options: { responsive:true, maintainAspectRatio:false, plugins:noLegend,
+      scales:{ x:xAxis, y:yAxis(v=>v.toFixed(2)) }}
+  });
+
+  // RSI chart with overbought/oversold zones
+  const rc = new Chart(document.getElementById('dc-rsi-'+safeId), {
+    type: 'line',
+    data: { labels: d, datasets: [
+      { label:'RSI', data:rsiS, borderColor:'#3fb950', borderWidth:1.5, pointRadius:0,
+        fill:false,
+        segment: { borderColor: ctx => {
+          const v = ctx.p1.parsed.y;
+          return v >= 70 ? '#f85149' : v <= 30 ? '#3fb950' : '#58a6ff';
+        }}
+      },
+      { label:'OB', data:d.map(()=>70), borderColor:'rgba(248,81,73,0.3)', borderWidth:1, borderDash:[4,3], pointRadius:0, fill:false },
+      { label:'OS', data:d.map(()=>30), borderColor:'rgba(63,185,80,0.3)',  borderWidth:1, borderDash:[4,3], pointRadius:0, fill:false }
+    ]},
+    options: { responsive:true, maintainAspectRatio:false, plugins:noLegend,
+      scales:{ x:xAxis, y:{ min:0, max:100, ticks:{ color:'#8b949e', font:{size:9}, stepSize:25 }, grid:{ color:'#1e242c' } } }}
+  });
+
+  openDrawer.charts = [pc, vc, mc, rc];
+}
+
+function closeDrawer(pid, safeId, drawerId) {
+  destroyOpenCharts();
+  const el = document.getElementById(drawerId);
+  if (el) {
+    el.classList.remove('open');
+    // Clear inner content after hiding so canvases don't linger
+    const inner = el.querySelector('.drawer-inner');
+    if (inner) inner.innerHTML = '';
+  }
+  const rowEl = document.getElementById('row-' + pid + '-' + safeId);
+  if (rowEl) rowEl.classList.remove('expanded');
+  openDrawer.sym = null;
+}
+
 // ── Build DOM ────────────────────────────────────────────────────────────────
 function buildUI() {
   // Portfolio tabs
@@ -532,6 +818,8 @@ function buildUI() {
       const safeId = sym.replace(/[^a-zA-Z0-9]/g, '_');
       const tr = document.createElement('tr');
       tr.id = 'row-' + p.id + '-' + safeId;
+      tr.className = 'data-row';
+      tr.onclick = () => toggleDrawer(p.id, sym, name, tr);
       tr.innerHTML = `
         <td class="sym-cell">${sym}</td>
         <td class="name-cell">${name}</td>
@@ -544,6 +832,15 @@ function buildUI() {
         <td data-val=""><span class="rsi-badge muted" id="${p.id}-${safeId}-rsiw">—</span></td>
         <td><span class="row-status" id="${p.id}-${safeId}-st">pending</span></td>`;
       tbody.appendChild(tr);
+      // Drawer row (hidden by default)
+      const drawerTr = document.createElement('tr');
+      drawerTr.id = 'drawer-' + p.id + '-' + safeId;
+      drawerTr.className = 'chart-drawer';
+      const drawerTd = document.createElement('td');
+      drawerTd.colSpan = 10;
+      drawerTd.innerHTML = '<div class="drawer-inner" id="drawerinner-' + p.id + '-' + safeId + '"></div>';
+      drawerTr.appendChild(drawerTd);
+      tbody.appendChild(drawerTr);
     });
   });
 }
@@ -567,8 +864,12 @@ function renderRow(portfolioId, sym, dailyData, weeklyData) {
 
   const dv = dailyData.values.slice().reverse();
   const dc = dv.map(v => parseFloat(v.close));
+  const dv_vol = dv.map(v => parseFloat(v.volume) || 0);
+  const dd = dv.map(v => v.datetime.slice(5));
   const wv = weeklyData.values.slice().reverse();
   const wc = wv.map(v => parseFloat(v.close));
+  // Store for chart drawer
+  tickerData[sym] = { closes: dc, volumes: dv_vol, dates: dd };
 
   const price   = dc[dc.length - 1];
   const sma50   = calcSMA(dc, 50);
@@ -597,7 +898,7 @@ function renderRow(portfolioId, sym, dailyData, weeklyData) {
 
   // Price (no color coding, just display)
   const priceEl = document.getElementById(pid+'-'+safeId+'-price');
-  if (priceEl) priceEl.textContent = fmtPrice(price);
+  if (priceEl) { priceEl.textContent = fmtPrice(price); priceEl.className = 'val'; }
 
   if (sma50) {
     setSpan(pid+'-'+safeId+'-sma50', fmtPrice(sma50), price > sma50 ? 'green' : 'red');
