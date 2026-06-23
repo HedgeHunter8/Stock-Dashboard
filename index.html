@@ -282,7 +282,7 @@ const PORTFOLIOS = [
       { sym: 'AMZN',  name: 'Amazon.com Inc.' },
       { sym: 'AXP',   name: 'American Express Co.' },
       { sym: 'BAC',   name: 'Bank of America Corp.' },
-      { sym: 'BRK/B', name: 'Berkshire Hathaway Inc. B' },
+      { sym: 'BRK.B', name: 'Berkshire Hathaway Inc. B' },
       { sym: 'C',     name: 'Citigroup Inc.' },
       { sym: 'CI',    name: 'The Cigna Group' },
       { sym: 'CMCSA', name: 'Comcast Corp.' },
@@ -510,6 +510,7 @@ function buildUI() {
             <tr>
               <th>Symbol</th>
               <th>Name</th>
+              <th>Price</th>
               <th class="sortable" data-col="sma50" data-pid="${p.id}" onclick="sortTable(this)">50-Day SMA<span class="sort-icon"></span></th>
               <th class="sortable" data-col="sma200" data-pid="${p.id}" onclick="sortTable(this)">200-Day SMA<span class="sort-icon"></span></th>
               <th class="sortable" data-col="vs200" data-pid="${p.id}" onclick="sortTable(this)">vs 200 SMA<span class="sort-icon"></span></th>
@@ -534,6 +535,7 @@ function buildUI() {
       tr.innerHTML = `
         <td class="sym-cell">${sym}</td>
         <td class="name-cell">${name}</td>
+        <td><span class="val muted" id="${p.id}-${safeId}-price">—</span></td>
         <td data-val=""><span class="val muted" id="${p.id}-${safeId}-sma50">—</span></td>
         <td data-val=""><span class="val muted" id="${p.id}-${safeId}-sma200">—</span></td>
         <td data-val=""><span class="val muted" id="${p.id}-${safeId}-vs200">—</span></td>
@@ -592,6 +594,10 @@ function renderRow(portfolioId, sym, dailyData, weeklyData) {
     const el = document.getElementById(id);
     if (el && el.parentElement) el.parentElement.setAttribute('data-val', isNaN(num) ? '' : num);
   };
+
+  // Price (no color coding, just display)
+  const priceEl = document.getElementById(pid+'-'+safeId+'-price');
+  if (priceEl) priceEl.textContent = fmtPrice(price);
 
   if (sma50) {
     setSpan(pid+'-'+safeId+'-sma50', fmtPrice(sma50), price > sma50 ? 'green' : 'red');
@@ -663,6 +669,8 @@ async function fetchCurrentPortfolio() {
     const safeId = sym.replace(/[^a-zA-Z0-9]/g, '_');
     const st = document.getElementById(portfolio.id + '-' + safeId + '-st');
     if (st) { st.textContent = 'pending'; st.className = 'row-status'; }
+    const priceReset = document.getElementById(portfolio.id + '-' + safeId + '-price');
+    if (priceReset) { priceReset.textContent = '—'; priceReset.className = 'val muted'; }
     ['sma50','sma200','vs200','sma200w'].forEach(f => {
       const el = document.getElementById(portfolio.id + '-' + safeId + '-' + f);
       if (el) { el.textContent = '—'; el.className = 'val muted'; if (el.parentElement) el.parentElement.setAttribute('data-val',''); }
