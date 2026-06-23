@@ -401,6 +401,26 @@ function calcRSI(closes, period) {
 }
 function rsiClass(v) { return v >= 70 ? 'red' : v <= 30 ? 'green' : 'amber'; }
 
+function calcATR(dailyValues, period) {
+  // dailyValues is the raw reversed array with .high .low .close
+  period = period || 14;
+  if (dailyValues.length < period + 1) return null;
+  const trs = [];
+  for (let i = 1; i < dailyValues.length; i++) {
+    const high  = parseFloat(dailyValues[i].high);
+    const low   = parseFloat(dailyValues[i].low);
+    const prevC = parseFloat(dailyValues[i-1].close);
+    const tr = Math.max(high - low, Math.abs(high - prevC), Math.abs(low - prevC));
+    trs.push(tr);
+  }
+  // Wilder smoothing: seed with SMA of first `period` TRs
+  let atr = trs.slice(0, period).reduce((a,b) => a+b, 0) / period;
+  for (let i = period; i < trs.length; i++) {
+    atr = (atr * (period - 1) + trs[i]) / period;
+  }
+  return atr;
+}
+
 function fmtPrice(p) {
   if (p >= 1000) return '$' + p.toFixed(2);
   if (p >= 1)    return '$' + p.toFixed(2);
@@ -803,6 +823,7 @@ function buildUI() {
               <th class="sortable" data-col="sma200w" data-pid="${p.id}" onclick="sortTable(this)">200-Week SMA<span class="sort-icon"></span></th>
               <th class="sortable" data-col="rsid" data-pid="${p.id}" onclick="sortTable(this)">Daily RSI<span class="sort-icon"></span></th>
               <th class="sortable" data-col="rsiw" data-pid="${p.id}" onclick="sortTable(this)">Weekly RSI<span class="sort-icon"></span></th>
+              <th class="sortable" data-col="atr" data-pid="${p.id}" onclick="sortTable(this)">ATR (14)<span class="sort-icon"></span></th>
               <th>Status</th>
             </tr>
           </thead>
@@ -830,6 +851,7 @@ function buildUI() {
         <td data-val=""><span class="val muted" id="${p.id}-${safeId}-sma200w">—</span></td>
         <td data-val=""><span class="rsi-badge muted" id="${p.id}-${safeId}-rsid">—</span></td>
         <td data-val=""><span class="rsi-badge muted" id="${p.id}-${safeId}-rsiw">—</span></td>
+        <td data-val=""><span class="val muted" id="${p.id}-${safeId}-atr">—</span></td>
         <td><span class="row-status" id="${p.id}-${safeId}-st">pending</span></td>`;
       tbody.appendChild(tr);
       // Drawer row (hidden by default)
@@ -869,7 +891,7 @@ function renderRow(portfolioId, sym, dailyData, weeklyData) {
   const wv = weeklyData.values.slice().reverse();
   const wc = wv.map(v => parseFloat(v.close));
   // Store for chart drawer
-  tickerData[sym] = { closes: dc, volumes: dv_vol, dates: dd };
+  tickerData[sym] = { closes: dc, volumes: dv_vol, dates: dd, rawDaily: dv };
 
   const price   = dc[dc.length - 1];
   const sma50   = calcSMA(dc, 50);
@@ -924,6 +946,14 @@ function renderRow(portfolioId, sym, dailyData, weeklyData) {
     setTdVal(pid+'-'+safeId+'-rsiw', rsiW);
   }
 
+  const atr = calcATR(dv);
+  if (atr !== null) {
+    const atrPct = (atr / price * 100);
+    setSpan(pid+'-'+safeId+'-atr', '$'+atr.toFixed(2)+' ('+atrPct.toFixed(1)+'%)',
+      atrPct > 5 ? 'amber' : '');
+    setTdVal(pid+'-'+safeId+'-atr', atr);
+  }
+
   const st = document.getElementById(pid + '-' + safeId + '-st');
   if (st) { st.textContent = '✓ done'; st.className = 'row-status done'; }
 }
@@ -972,7 +1002,7 @@ async function fetchCurrentPortfolio() {
     if (st) { st.textContent = 'pending'; st.className = 'row-status'; }
     const priceReset = document.getElementById(portfolio.id + '-' + safeId + '-price');
     if (priceReset) { priceReset.textContent = '—'; priceReset.className = 'val muted'; }
-    ['sma50','sma200','vs200','sma200w'].forEach(f => {
+    ['sma50','sma200','vs200','sma200w','atr'].forEach(f => {
       const el = document.getElementById(portfolio.id + '-' + safeId + '-' + f);
       if (el) { el.textContent = '—'; el.className = 'val muted'; if (el.parentElement) el.parentElement.setAttribute('data-val',''); }
     });
