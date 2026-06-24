@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
-Nightly GitHub Actions script — fetches FCF Yield for all portfolio tickers
-using yfinance and writes results to fcf_data.json in the repo root.
+Nightly GitHub Actions script — fetches FCF Yield (current + historical)
+for all portfolio tickers using yfinance, writes to fcf_data.json.
 
 FCF Yield = Free Cash Flow (TTM) / Market Cap
+Historical = annual FCF / year-end market cap (approximated via avg price * shares)
 """
 
 import json
@@ -16,8 +17,6 @@ except ImportError:
     print("yfinance not installed. Run: pip install yfinance")
     sys.exit(1)
 
-# ── All unique tickers across all portfolios ─────────────────────────────────
-# ETH/USD and crypto/non-standard tickers are excluded (no FCF data)
 TICKERS = sorted(set([
     # Hunter's Portfolio
     "AMZN", "ASML", "BIDU", "BYDDY", "CRM", "GOOGL", "GRRR", "HIMS",
@@ -30,63 +29,128 @@ TICKERS = sorted(set([
     "SCHW", "TXN", "UNP", "V", "WMT", "XOM",
     # Large Value Portfolio
     "AIG", "AXP", "BRK-B", "C", "CI", "COF", "COP", "CVS",
-    "DE", "DIS", "ELV", "GM", "INTC", "LOW", "META",
+    "DE", "DIS", "GM", "INTC", "LOW", "META",
     "NOC", "RTX", "TMO", "WFC",
 ]))
 
-# Map dashboard symbols to yfinance symbols where they differ
 SYMBOL_MAP = {
-    "BRK.B": "BRK-B",   # yfinance uses BRK-B
-    "ETH/USD": None,     # skip — no FCF
-    "IBIT": None,        # skip — ETF, no FCF
+    "BRK.B":   "BRK-B",
+    "ETH/USD": None,
+    "IBIT":    None,
 }
 
-def get_fcf_yield(ticker_sym):
-    """Returns FCF yield as a float (e.g. 0.034 = 3.4%) or None if unavailable."""
+def get_fcf_data(ticker_sym):
+    """
+    Returns dict with:
+      - current: float (TTM FCF yield) or None
+      - history: list of {year, fcfYield} for up to 5 years
+      - avg5y:   float (5-year average FCF yield) or None
+    """
+    result = { "current": None, "history": [], "avg5y": None }
     try:
         t = yf.Ticker(ticker_sym)
         info = t.info
 
-        # Free cash flow (TTM)
-        fcf = info.get("freeCashflow")
-        # Market cap
+        # ── Current TTM FCF Yield ────────────────────────────────────────────
+        fcf_ttm    = info.get("freeCashflow")
         market_cap = info.get("marketCap")
+        shares_out = info.get("sharesOutstanding")
 
-        if fcf is None or market_cap is None or market_cap == 0:
-            return None
+        if fcf_ttm and market_cap and market_cap > 0:
+            result["current"] = fcf_ttm / market_cap
 
-        return fcf / market_cap
+        # ── Historical Annual FCF Yield ──────────────────────────────────────
+        # Use annual cash flow statement for FCF
+        cf = t.cashflow  # columns = fiscal year end dates
+        if cf is None or cf.empty:
+            return result
+
+        # FCF = Operating Cash Flow - Capital Expenditures
+        history = []
+        for col in cf.columns[:5]:  # last 5 fiscal years
+            try:
+                op_cf = None
+                capex = 0
+
+                # Try multiple row name variations yfinance uses
+                for row in ["Operating Cash Flow", "Total Cash From Operating Activities",
+                            "Cash Flow From Continuing Operating Activities"]:
+                    if row in cf.index:
+                        op_cf = cf.loc[row, col]
+                        break
+
+                for row in ["Capital Expenditure", "Capital Expenditures",
+                            "Purchase Of Property Plant And Equipment"]:
+                    if row in cf.index:
+                        capex = cf.loc[row, col]
+                        break
+
+                if op_cf is None or str(op_cf) == 'nan':
+                    continue
+
+                fcf_annual = float(op_cf) - abs(float(capex)) if str(capex) != 'nan' else float(op_cf)
+
+                # Get year-end price to approximate market cap
+                year = col.year
+                # Use shares outstanding * year-end closing price
+                if shares_out:
+                    # Fetch year-end price
+                    year_str  = f"{year}-12-15"
+                    year_str2 = f"{year}-12-31"
+                    try:
+                        hist = t.history(start=year_str, end=year_str2, interval="1d")
+                        if not hist.empty:
+                            yr_price   = float(hist["Close"].iloc[-1])
+                            yr_mktcap  = yr_price * shares_out
+                            fcf_yield  = fcf_annual / yr_mktcap
+                            history.append({
+                                "year":     year,
+                                "fcfYield": round(fcf_yield, 4)
+                            })
+                    except Exception:
+                        pass
+
+            except Exception as e:
+                print(f"    History error for {ticker_sym} {col}: {e}")
+                continue
+
+        # Sort chronologically
+        history.sort(key=lambda x: x["year"])
+        result["history"] = history
+
+        # 5-year average
+        if history:
+            vals = [h["fcfYield"] for h in history if h["fcfYield"] is not None]
+            result["avg5y"] = round(sum(vals) / len(vals), 4) if vals else None
 
     except Exception as e:
         print(f"  Error fetching {ticker_sym}: {e}")
-        return None
+
+    return result
+
 
 def main():
     results = {}
     total = len(TICKERS)
-    print(f"Fetching FCF Yield for {total} tickers...")
+    print(f"Fetching FCF data for {total} tickers...\n")
 
     for i, sym in enumerate(TICKERS):
-        # Map to yfinance symbol if needed
         yf_sym = SYMBOL_MAP.get(sym, sym)
         if yf_sym is None:
-            print(f"  [{i+1}/{total}] {sym} — skipped (no FCF applicable)")
-            results[sym] = None
+            print(f"[{i+1}/{total}] {sym} — skipped")
+            results[sym] = { "current": None, "history": [], "avg5y": None }
             continue
 
-        print(f"  [{i+1}/{total}] {sym} ({yf_sym})...", end=" ")
-        fcf_yield = get_fcf_yield(yf_sym)
+        print(f"[{i+1}/{total}] {sym}...", end=" ", flush=True)
+        data = get_fcf_data(yf_sym)
 
-        if fcf_yield is not None:
-            print(f"{fcf_yield*100:.2f}%")
-        else:
-            print("n/a")
+        cur = f"{data['current']*100:.2f}%" if data["current"] is not None else "n/a"
+        avg = f"{data['avg5y']*100:.2f}%" if data["avg5y"] is not None else "n/a"
+        print(f"current={cur}  5yr_avg={avg}  history={len(data['history'])} years")
 
-        # Store under original dashboard symbol
-        results[sym] = fcf_yield
-        # Also store under BRK.B if we fetched BRK-B
+        results[sym] = data
         if sym == "BRK-B":
-            results["BRK.B"] = fcf_yield
+            results["BRK.B"] = data
 
     output = {
         "updated": datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"),
@@ -96,8 +160,8 @@ def main():
     with open("fcf_data.json", "w") as f:
         json.dump(output, f, indent=2)
 
-    print(f"\nDone. Written to fcf_data.json ({len(results)} tickers)")
-    print(f"Timestamp: {output['updated']}")
+    success = sum(1 for v in results.values() if v.get("current") is not None)
+    print(f"\nDone. {success}/{total} tickers with FCF data. Written to fcf_data.json")
 
 if __name__ == "__main__":
     main()
