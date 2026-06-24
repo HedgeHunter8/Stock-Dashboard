@@ -455,5 +455,35 @@ def main():
     print(f"\nDone. {success} tickers → screener_data.json ({size_mb:.1f} MB)")
     print(f"Excluded: {excluded} | Errors: {errors}")
 
+    # Inject into index.html as window._SCREENER_DATA fallback
+    inject_screener_into_html(output)
+
+
+def inject_screener_into_html(data_obj):
+    import re
+    try:
+        with open("index.html", "r", encoding="utf-8") as f:
+            html = f.read()
+    except FileNotFoundError:
+        print("  index.html not found — skipping HTML injection")
+        return
+
+    json_str = json.dumps(data_obj, separators=(',', ':'))
+    marker_start = "/* SCREENER_DATA_START */"
+    marker_end   = "/* SCREENER_DATA_END */"
+    new_block    = f"{marker_start}\nwindow._SCREENER_DATA={json_str};\n{marker_end}"
+
+    if marker_start in html and marker_end in html:
+        pattern = re.escape(marker_start) + r".*?" + re.escape(marker_end)
+        html = re.sub(pattern, new_block, html, flags=re.DOTALL)
+        print("  Injected screener data into existing marker in index.html")
+    else:
+        html = html.replace("/* FCF_DATA_START */", f"{new_block}\n/* FCF_DATA_START */")
+        print("  Inserted screener data marker into index.html")
+
+    with open("index.html", "w", encoding="utf-8") as f:
+        f.write(html)
+    print(f"  index.html updated with screener data ({len(json_str)/1e6:.1f} MB injected)")
+
 if __name__ == "__main__":
     main()
