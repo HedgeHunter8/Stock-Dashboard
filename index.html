@@ -193,7 +193,13 @@ th.sortable:not(.asc):not(.desc) .sort-icon::after { content: '⇅'; }
 }
 .drawer-close:hover { border-color: #f85149; color: #f85149; }
 .charts-grid {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto auto;
+  gap: 14px;
+}
+.charts-grid .chart-panel.full-width {
+  grid-column: 1 / -1;
 }
 @media (max-width: 800px) { .charts-grid { grid-template-columns: 1fr; } }
 .chart-panel {
@@ -676,6 +682,13 @@ function toggleDrawer(pid, sym, name, rowEl) {
   const volColors = v.map((_, i) => upDays[i] ? 'rgba(63,185,80,0.7)' : 'rgba(248,81,73,0.7)');
   const histColors = histS.map(h => h === null ? 'transparent' : h >= 0 ? 'rgba(63,185,80,0.8)' : 'rgba(248,81,73,0.8)');
 
+  // FCF history data for this ticker
+  const fcfEntry   = fcfData[sym] || {};
+  const fcfHistory = fcfEntry.history || [];
+  const fcfAvg5y   = fcfEntry.avg5y   || null;
+  const fcfCurrent = fcfEntry.current || null;
+  const fcfHasData = fcfHistory.length > 0;
+
   inner.innerHTML = `
     <div class="drawer-header">
       <div class="drawer-title">${sym} <span style="font-size:12px;color:#8b949e;font-weight:400;letter-spacing:0">${name}</span></div>
@@ -683,54 +696,46 @@ function toggleDrawer(pid, sym, name, rowEl) {
     </div>
     <div class="charts-grid">
       <div class="chart-panel">
-        <div class="chart-panel-title">Price + Moving Averages</div>
+        <div class="chart-panel-title">Price + Moving Averages (Last 100 Days)</div>
         <div class="chart-legend">
           <span><span class="cleg" style="background:#58a6ff"></span>Price</span>
           <span><span class="cleg" style="background:#f0883e"></span>50-Day SMA</span>
           <span><span class="cleg" style="background:#bc8cff"></span>200-Day SMA</span>
         </div>
-        <div style="position:relative;height:220px"><canvas id="dc-price-${safeId}"></canvas></div>
-      </div>
-      <div class="chart-panel">
-        <div class="chart-panel-title">Volume (Last 100 Days)</div>
-        <div class="chart-legend">
-          <span><span class="cleg" style="background:#3fb950"></span>Up Day</span>
-          <span><span class="cleg" style="background:#f85149"></span>Down Day</span>
-          <span><span class="cleg" style="background:#d29922"></span>20-Day Avg</span>
-        </div>
-        <div style="position:relative;height:220px"><canvas id="dc-vol-${safeId}"></canvas></div>
-      </div>
-      <div class="chart-panel">
-        <div class="chart-panel-title">MACD (12, 26, 9)</div>
-        <div class="chart-legend">
-          <span><span class="cleg" style="background:#58a6ff"></span>MACD</span>
-          <span><span class="cleg" style="background:#f0883e"></span>Signal</span>
-          <span><span class="cleg" style="background:#3fb950"></span>Histogram</span>
-        </div>
-        <div style="position:relative;height:220px"><canvas id="dc-macd-${safeId}"></canvas></div>
+        <div style="position:relative;height:240px"><canvas id="dc-price-${safeId}"></canvas></div>
       </div>
       <div class="chart-panel">
         <div class="chart-panel-title">RSI (14-Period Daily)</div>
         <div class="chart-legend">
-          <span><span class="cleg" style="background:#3fb950"></span>RSI</span>
+          <span><span class="cleg" style="background:#58a6ff"></span>RSI</span>
           <span style="color:#f85149">▲ 70 Overbought</span>
           <span style="color:#3fb950">▼ 30 Oversold</span>
         </div>
-        <div style="position:relative;height:220px"><canvas id="dc-rsi-${safeId}"></canvas></div>
+        <div style="position:relative;height:240px"><canvas id="dc-rsi-${safeId}"></canvas></div>
+      </div>
+      <div class="chart-panel full-width">
+        <div class="chart-panel-title">FCF Yield — Annual History &amp; 5-Year Average</div>
+        <div class="chart-legend">
+          <span><span class="cleg" style="background:#3fb950"></span>Annual FCF Yield</span>
+          <span><span class="cleg" style="background:#d29922"></span>5-Year Avg</span>
+          <span><span class="cleg" style="background:#58a6ff"></span>Current TTM</span>
+        </div>
+        <div style="position:relative;height:200px"><canvas id="dc-fcf-${safeId}"></canvas></div>
+        ${!fcfHasData ? '<div style="color:#484f58;font-size:11px;margin-top:8px;">⏳ FCF data not yet available — run the GitHub Action to populate</div>' : ''}
       </div>
     </div>
-    <div class="chart-hint">Click any row again to close · Data shows last 100 trading days</div>`;
+    <div class="chart-hint">Click any row again to close · Price &amp; RSI: last 100 trading days · FCF: annual, up to 5 years</div>`;
 
   // Chart defaults
-  const xAxis = { ticks: { color: '#8b949e', maxTicksLimit: 8, font: { size: 9 } }, grid: { color: '#1e242c' } };
-  const yAxis = (cb) => ({ ticks: { color: '#8b949e', font: { size: 9 }, callback: cb || (v => v) }, grid: { color: '#1e242c' } });
+  const xAxis    = { ticks: { color: '#8b949e', maxTicksLimit: 8, font: { size: 9 } }, grid: { color: '#1e242c' } };
+  const yAxis    = (cb) => ({ ticks: { color: '#8b949e', font: { size: 9 }, callback: cb || (v => v) }, grid: { color: '#1e242c' } });
   const noLegend = { legend: { display: false } };
 
-  // Price chart
+  // ── Price chart ────────────────────────────────────────────────────────────
   const pc = new Chart(document.getElementById('dc-price-'+safeId), {
     type: 'line',
     data: { labels: d, datasets: [
-      { label:'Price',   data:c,     borderColor:'#58a6ff', borderWidth:1.5, pointRadius:0, tension:0.1, fill:false },
+      { label:'Price',   data:c,      borderColor:'#58a6ff', borderWidth:1.5, pointRadius:0, tension:0.1, fill:false },
       { label:'50 SMA',  data:sma50s, borderColor:'#f0883e', borderWidth:1.5, pointRadius:0, fill:false },
       { label:'200 SMA', data:sma200s,borderColor:'#bc8cff', borderWidth:1.5, pointRadius:0, fill:false }
     ]},
@@ -738,49 +743,54 @@ function toggleDrawer(pid, sym, name, rowEl) {
       scales:{ x:xAxis, y:yAxis(v=>'$'+v.toFixed(0)) }}
   });
 
-  // Volume chart
-  const vc = new Chart(document.getElementById('dc-vol-'+safeId), {
-    type: 'bar',
-    data: { labels: d, datasets: [
-      { label:'Volume', data:v, backgroundColor:volColors, borderWidth:0 },
-      { label:'20d Avg', data:vol20s, type:'line', borderColor:'#d29922',
-        borderWidth:1.5, borderDash:[4,3], pointRadius:0, fill:false }
-    ]},
-    options: { responsive:true, maintainAspectRatio:false, plugins:noLegend,
-      scales:{ x:xAxis, y:yAxis(v => v >= 1e6 ? (v/1e6).toFixed(1)+'M' : v >= 1e3 ? (v/1e3).toFixed(0)+'K' : v) }}
-  });
-
-  // MACD chart
-  const mc = new Chart(document.getElementById('dc-macd-'+safeId), {
-    type: 'bar',
-    data: { labels: d, datasets: [
-      { label:'Histogram', data:histS, backgroundColor:histColors, borderWidth:0, order:2 },
-      { label:'MACD',   data:macdS, type:'line', borderColor:'#58a6ff', borderWidth:1.5, pointRadius:0, fill:false, order:1 },
-      { label:'Signal', data:sigS,  type:'line', borderColor:'#f0883e', borderWidth:1.5, pointRadius:0, fill:false, order:1 }
-    ]},
-    options: { responsive:true, maintainAspectRatio:false, plugins:noLegend,
-      scales:{ x:xAxis, y:yAxis(v=>v.toFixed(2)) }}
-  });
-
-  // RSI chart with overbought/oversold zones
+  // ── RSI chart ──────────────────────────────────────────────────────────────
   const rc = new Chart(document.getElementById('dc-rsi-'+safeId), {
     type: 'line',
     data: { labels: d, datasets: [
-      { label:'RSI', data:rsiS, borderColor:'#3fb950', borderWidth:1.5, pointRadius:0,
-        fill:false,
+      { label:'RSI', data:rsiS, borderColor:'#58a6ff', borderWidth:1.5, pointRadius:0, fill:false,
         segment: { borderColor: ctx => {
           const v = ctx.p1.parsed.y;
           return v >= 70 ? '#f85149' : v <= 30 ? '#3fb950' : '#58a6ff';
         }}
       },
-      { label:'OB', data:d.map(()=>70), borderColor:'rgba(248,81,73,0.3)', borderWidth:1, borderDash:[4,3], pointRadius:0, fill:false },
-      { label:'OS', data:d.map(()=>30), borderColor:'rgba(63,185,80,0.3)',  borderWidth:1, borderDash:[4,3], pointRadius:0, fill:false }
+      { label:'OB', data:d.map(()=>70), borderColor:'rgba(248,81,73,0.35)', borderWidth:1, borderDash:[4,3], pointRadius:0, fill:false },
+      { label:'OS', data:d.map(()=>30), borderColor:'rgba(63,185,80,0.35)',  borderWidth:1, borderDash:[4,3], pointRadius:0, fill:false }
     ]},
     options: { responsive:true, maintainAspectRatio:false, plugins:noLegend,
       scales:{ x:xAxis, y:{ min:0, max:100, ticks:{ color:'#8b949e', font:{size:9}, stepSize:25 }, grid:{ color:'#1e242c' } } }}
   });
 
-  openDrawer.charts = [pc, vc, mc, rc];
+  // ── FCF Yield history chart ────────────────────────────────────────────────
+  const fcfLabels   = fcfHistory.map(h => String(h.year));
+  const fcfYields   = fcfHistory.map(h => h.fcfYield !== null ? +(h.fcfYield * 100).toFixed(2) : null);
+  const fcfAvgLine  = fcfLabels.map(() => fcfAvg5y !== null ? +(fcfAvg5y * 100).toFixed(2) : null);
+  const fcfCurLine  = fcfLabels.map(() => fcfCurrent !== null ? +(fcfCurrent * 100).toFixed(2) : null);
+  const barColors   = fcfYields.map(v => v === null ? 'transparent' : v >= 5 ? 'rgba(63,185,80,0.75)' : v >= 2 ? 'rgba(88,166,255,0.75)' : v >= 0 ? 'rgba(210,153,34,0.75)' : 'rgba(248,81,73,0.75)');
+
+  const fc = new Chart(document.getElementById('dc-fcf-'+safeId), {
+    type: 'bar',
+    data: {
+      labels: fcfLabels.length ? fcfLabels : ['No data'],
+      datasets: [
+        { label:'FCF Yield %', data: fcfYields.length ? fcfYields : [0],
+          backgroundColor: barColors, borderWidth:0, order:2 },
+        { label:'5yr Avg', data: fcfAvgLine.length ? fcfAvgLine : [null],
+          type:'line', borderColor:'#d29922', borderWidth:2, borderDash:[5,3],
+          pointRadius:0, fill:false, order:1 },
+        { label:'Current TTM', data: fcfCurLine.length ? fcfCurLine : [null],
+          type:'line', borderColor:'#58a6ff', borderWidth:2, borderDash:[3,3],
+          pointRadius:0, fill:false, order:1 }
+      ]
+    },
+    options: { responsive:true, maintainAspectRatio:false, plugins:noLegend,
+      scales:{
+        x: xAxis,
+        y: { ticks:{ color:'#8b949e', font:{size:9}, callback: v => v+'%' }, grid:{ color:'#1e242c' } }
+      }
+    }
+  });
+
+  openDrawer.charts = [pc, rc, fc];
 }
 
 function closeDrawer(pid, safeId, drawerId) {
