@@ -156,6 +156,92 @@ tbody td:not(:first-child) { text-align: right; }
 .row-status.done    { color: #3fb950; }
 .row-status.error   { color: #f85149; }
 
+/* ── Screener tab ── */
+.screener-panel { display: none; }
+.screener-panel.active { display: block; }
+.screener-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-end;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+.filter-group { display: flex; flex-direction: column; gap: 4px; min-width: 140px; }
+.filter-label { font-size: 10px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.8px; }
+.filter-select, .filter-input {
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  color: #c9d1d9;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+.filter-select:focus, .filter-input:focus { outline: none; border-color: #388bfd; }
+.screener-run-btn {
+  background: #1f6feb;
+  border: 2px solid #388bfd;
+  border-radius: 8px;
+  color: #fff;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 20px;
+  cursor: pointer;
+  transition: background 0.15s;
+  box-shadow: 0 0 8px rgba(56,139,253,0.4);
+  align-self: flex-end;
+}
+.screener-run-btn:hover { background: #388bfd; }
+.screener-run-btn:disabled { background: #21262d; border-color: #30363d; color: #484f58; cursor: not-allowed; box-shadow: none; }
+.screener-results-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.screener-count { font-size: 12px; color: #8b949e; }
+.trend-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+.trend-badge.improving     { background: rgba(63,185,80,0.15);  color: #3fb950; }
+.trend-badge.mixed         { background: rgba(210,153,34,0.15); color: #d29922; }
+.trend-badge.deteriorating { background: rgba(248,81,73,0.15);  color: #f85149; }
+.trend-badge.insufficient  { background: #21262d; color: #484f58; }
+.proj-badge {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.proj-badge.likely_up   { background: rgba(63,185,80,0.15);  color: #3fb950; }
+.proj-badge.likely_down { background: rgba(248,81,73,0.15);  color: #f85149; }
+.proj-badge.unclear     { background: #21262d; color: #484f58; }
+.screener-status {
+  font-size: 12px; color: #8b949e;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 /* sortable headers */
 th.sortable { cursor: pointer; user-select: none; }
 th.sortable:hover { color: #c9d1d9; background: #1c2230; }
@@ -238,6 +324,131 @@ tbody tr.data-row.expanded { background: #161b22; }
   </div>
 
   <div id="portfolio-panels"></div>
+  <div class="screener-panel" id="panel-screener">
+    <div class="screener-controls">
+      <div class="filter-group">
+        <span class="filter-label">FCF Trend</span>
+        <select class="filter-select" id="f-trend">
+          <option value="all">All trends</option>
+          <option value="improving" selected>Improving only</option>
+          <option value="improving,mixed">Improving + Mixed</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">2026 Projection</span>
+        <select class="filter-select" id="f-proj">
+          <option value="all">Any</option>
+          <option value="likely_up" selected>Likely Up only</option>
+          <option value="likely_up,unclear">Likely Up + Unclear</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Min FCF Yield %</span>
+        <input class="filter-input" id="f-minyield" type="number" value="2" min="0" max="30" step="0.5">
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">FCF/Net Income</span>
+        <select class="filter-select" id="f-fcfni">
+          <option value="all">Any</option>
+          <option value="gt1" selected>&gt; 1 (quality)</option>
+          <option value="any_positive">Positive</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">FCF/S Growth (3yr)</span>
+        <select class="filter-select" id="f-fcfgrowth">
+          <option value="all">Any</option>
+          <option value="positive" selected>Positive</option>
+          <option value="positive_stable">Positive &amp; Stable</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">FCF Yield vs Treasury</span>
+        <select class="filter-select" id="f-treasury">
+          <option value="all">Any</option>
+          <option value="gt2pct" selected>&gt; Treasury + 2%</option>
+          <option value="gt0">Above Treasury</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">P/FCF vs 5yr Avg</span>
+        <select class="filter-select" id="f-pfcf">
+          <option value="all">Any</option>
+          <option value="below">Below avg (cheap)</option>
+          <option value="sell_zone">20-30% above (sell zone)</option>
+          <option value="not_extended">Not extended (&lt;20% above)</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Green Flag FCF/S&gt;EPS</span>
+        <select class="filter-select" id="f-greenflag">
+          <option value="all">Any</option>
+          <option value="true" selected>✓ Green flag only</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">TTM vs 5yr Avg</span>
+        <select class="filter-select" id="f-vsavg">
+          <option value="all">Any</option>
+          <option value="above">Above 5yr avg only</option>
+          <option value="below">Below 5yr avg only</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Sector</span>
+        <select class="filter-select" id="f-sector">
+          <option value="all">All sectors</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Sort Results By</span>
+        <select class="filter-select" id="f-sortby">
+          <option value="shareholderYield" selected>Shareholder Yield ↓</option>
+          <option value="current">FCF Yield TTM ↓</option>
+          <option value="fcfVsTreasury">FCF vs Treasury ↓</option>
+          <option value="fcfPSGrowth3yr">FCF/S Growth ↓</option>
+          <option value="fcfPSStability">FCF/S Stability ↓</option>
+          <option value="pFCFVsAvg">P/FCF vs Avg ↑</option>
+        </select>
+      </div>
+      <button class="screener-run-btn" id="screener-run-btn" onclick="runScreener()">▶ SCREEN</button>
+    </div>
+    <div class="screener-status" id="screener-status">
+      <div class="dot" id="screener-dot"></div>
+      <span id="screener-status-text">Click SCREEN to filter results · Data loads from screener_data.json on first use</span>
+    </div>
+    <div class="screener-results-header">
+      <div class="screener-count" id="screener-count"></div>
+      <div style="font-size:11px;color:#484f58;" id="screener-updated"></div>
+    </div>
+    <div class="stock-table-wrap">
+      <table id="screener-table">
+        <thead>
+          <tr>
+            <th>Symbol</th>
+            <th>Company</th>
+            <th>Sector</th>
+            <th>FCF Yield</th>
+            <th>5yr Avg</th>
+            <th>vs 5yr Avg</th>
+            <th>Shrhldr Yield</th>
+            <th>FCF/NI</th>
+            <th>FCF/S Gr 3yr</th>
+            <th>Stability</th>
+            <th>vs Treasury</th>
+            <th>P/FCF</th>
+            <th>P/FCF 5yr Avg</th>
+            <th>P/FCF vs Avg</th>
+            <th>🟢 Flag</th>
+            <th>Trend</th>
+            <th>2026 Est.</th>
+            <th>Mkt Cap</th>
+          </tr>
+        </thead>
+        <tbody id="screener-tbody"></tbody>
+      </table>
+    </div>
+  </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
@@ -516,6 +727,230 @@ function loadFCFData() {
   } catch (e) {
     console.warn('FCF data error:', e.message);
   }
+}
+
+// ── Screener state ───────────────────────────────────────────────────────────
+let screenerData    = null;
+let screenerLoaded  = false;
+let screenerRows    = [];
+
+// ── Switch to screener tab ───────────────────────────────────────────────────
+function switchToScreener() {
+  document.querySelectorAll('.portfolio-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.screener-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.ptab').forEach(t => t.classList.remove('active'));
+  document.getElementById('panel-screener').classList.add('active');
+  document.getElementById('ptab-screener').classList.add('active');
+  document.getElementById('fetch-btn').style.display = 'none';
+  // Load screener data on first visit
+  if (!screenerLoaded) loadScreenerData();
+}
+
+// ── Switch portfolio (restore fetch btn) ─────────────────────────────────────
+const _origSwitchPortfolio = typeof switchPortfolio === 'function' ? switchPortfolio : null;
+
+// ── Load screener_data.json ───────────────────────────────────────────────────
+async function loadScreenerData() {
+  setScreenerStatus('Loading screener data from screener_data.json...', 'loading');
+  try {
+    const res = await fetch('screener_data.json');
+    if (!res.ok) throw new Error('HTTP ' + res.status + ' — run the GitHub Action first to generate screener_data.json');
+    screenerData   = await res.json();
+    screenerLoaded = true;
+    const count    = screenerData.count || Object.keys(screenerData.data || {}).length;
+    document.getElementById('screener-updated').textContent = 'Updated: ' + (screenerData.updated || 'unknown');
+    setScreenerStatus('Data loaded — ' + count + ' tickers available. Set filters and click SCREEN.', '');
+    // Populate sector dropdown
+    populateSectors();
+  } catch (e) {
+    setScreenerStatus('Error: ' + e.message, 'error');
+  }
+}
+
+function setScreenerStatus(msg, state) {
+  document.getElementById('screener-status-text').textContent = msg;
+  const d = document.getElementById('screener-dot');
+  d.className = 'dot' + (state ? ' ' + state : '');
+}
+
+function populateSectors() {
+  if (!screenerData) return;
+  const sectors = new Set();
+  Object.values(screenerData.data || {}).forEach(d => { if (d.sector) sectors.add(d.sector); });
+  const sel = document.getElementById('f-sector');
+  // Clear existing options except 'All sectors'
+  while (sel.options.length > 1) sel.remove(1);
+  [...sectors].sort().forEach(s => {
+    const o = document.createElement('option');
+    o.value = s; o.textContent = s;
+    sel.appendChild(o);
+  });
+}
+
+function fmtCap(cap) {
+  if (!cap) return '—';
+  if (cap >= 1e12) return '$' + (cap/1e12).toFixed(2) + 'T';
+  if (cap >= 1e9)  return '$' + (cap/1e9).toFixed(1) + 'B';
+  if (cap >= 1e6)  return '$' + (cap/1e6).toFixed(0) + 'M';
+  return '$' + cap;
+}
+
+// ── Run screener with current filters ────────────────────────────────────────
+function runScreener() {
+  if (!screenerData) { loadScreenerData(); return; }
+
+  const trendFilter    = document.getElementById('f-trend').value;
+  const projFilter     = document.getElementById('f-proj').value;
+  const minYield       = parseFloat(document.getElementById('f-minyield').value) / 100;
+  const sectorFilter   = document.getElementById('f-sector').value;
+  const vsAvgFilter    = document.getElementById('f-vsavg').value;
+  const fcfniFilter    = document.getElementById('f-fcfni').value;
+  const fcfGrowthFilter= document.getElementById('f-fcfgrowth').value;
+  const treasuryFilter = document.getElementById('f-treasury').value;
+  const pfcfFilter     = document.getElementById('f-pfcf').value;
+  const greenFilter    = document.getElementById('f-greenflag').value;
+  const sortBy         = document.getElementById('f-sortby').value;
+
+  const allowedTrends  = trendFilter === 'all' ? null : trendFilter.split(',');
+  const allowedProjs   = projFilter  === 'all' ? null : projFilter.split(',');
+  const treasury10yr   = screenerData.treasury10yr || 0;
+
+  const tbody = document.getElementById('screener-tbody');
+  tbody.innerHTML = '';
+  screenerRows = [];
+  let matched = 0;
+
+  const data = screenerData.data || {};
+  const rows = [];
+
+  Object.entries(data).forEach(([sym, d]) => {
+    if (!d || d.excluded) return;
+
+    const cur    = d.current;
+    const avg    = d.avg5y;
+    const trend  = d.trend    || 'insufficient';
+    const proj   = d.proj2026 || 'unclear';
+    const fcfni  = d.fcfNetIncomeRatio;
+    const fcfGr  = d.fcfPSGrowth3yr;
+    const fcfSt  = d.fcfPSStability;
+    const vsTres = d.fcfVsTreasury;
+    const pfcf   = d.pFCF;
+    const pfcfAv = d.pFCFAvg5y;
+    const pfcfVs = d.pFCFVsAvg;
+    const sy     = d.shareholderYield;
+    const green  = d.fcfVsEPS;
+
+    // ── Apply all filters ──────────────────────────────────────────────────
+    if (allowedTrends && !allowedTrends.includes(trend)) return;
+    if (allowedProjs  && !allowedProjs.includes(proj))   return;
+    if (cur === null || cur === undefined)                return;
+    if (cur < minYield)                                  return;
+    if (sectorFilter !== 'all' && d.sector !== sectorFilter) return;
+
+    // FCF/Net Income filter
+    if (fcfniFilter === 'gt1' && (fcfni === null || fcfni <= 1)) return;
+    if (fcfniFilter === 'any_positive' && (fcfni === null || fcfni <= 0)) return;
+
+    // FCF/S growth filter
+    if (fcfGrowthFilter === 'positive' && (fcfGr === null || fcfGr <= 0)) return;
+    if (fcfGrowthFilter === 'positive_stable' &&
+        (fcfGr === null || fcfGr <= 0 || fcfSt === null || fcfSt < 0.66)) return;
+
+    // FCF Yield vs Treasury filter
+    if (treasuryFilter === 'gt2pct' && (vsTres === null || vsTres < 0.02)) return;
+    if (treasuryFilter === 'gt0'    && (vsTres === null || vsTres < 0))     return;
+
+    // P/FCF filter
+    if (pfcfFilter === 'below'        && (pfcfVs === null || pfcfVs >= 0))   return;
+    if (pfcfFilter === 'sell_zone'    && (pfcfVs === null || pfcfVs < 20 || pfcfVs > 30)) return;
+    if (pfcfFilter === 'not_extended' && (pfcfVs !== null && pfcfVs >= 20))  return;
+
+    // TTM vs 5yr avg filter
+    if (vsAvgFilter === 'above' && avg !== null && cur < avg) return;
+    if (vsAvgFilter === 'below' && avg !== null && cur > avg) return;
+
+    // Green flag filter
+    if (greenFilter === 'true' && green !== true) return;
+
+    matched++;
+
+    // ── Build sort value ──────────────────────────────────────────────────
+    let sortVal = 0;
+    if (sortBy === 'shareholderYield')  sortVal = sy     !== null ? sy     : -999;
+    if (sortBy === 'current')           sortVal = cur    !== null ? cur    : -999;
+    if (sortBy === 'fcfVsTreasury')     sortVal = vsTres !== null ? vsTres : -999;
+    if (sortBy === 'fcfPSGrowth3yr')    sortVal = fcfGr  !== null ? fcfGr  : -999;
+    if (sortBy === 'fcfPSStability')    sortVal = fcfSt  !== null ? fcfSt  : -999;
+    if (sortBy === 'pFCFVsAvg')         sortVal = pfcfVs !== null ? -pfcfVs : 999; // ascending = cheaper
+
+    const vsAvg   = (avg !== null && avg !== 0) ? ((cur - avg) / Math.abs(avg) * 100) : null;
+    const pct     = v => v !== null ? (v*100).toFixed(2)+'%' : '—';
+    const pctCls  = v => v === null ? 'muted' : v >= 0.05 ? 'green' : v >= 0.02 ? '' : v >= 0 ? 'amber' : 'red';
+    const signCls = v => v === null ? 'muted' : v > 0 ? 'green' : 'red';
+    const signFmt = v => v === null ? '—' : (v > 0 ? '+' : '') + v.toFixed(1) + '%';
+
+    const tr = document.createElement('tr');
+    tr.setAttribute('data-sym', sym);
+    tr.setAttribute('data-sort', sortVal);
+    tr.style.cursor = 'default';
+    tr.innerHTML = `
+      <td class="sym-cell">${sym}</td>
+      <td class="name-cell" style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${d.name || '—'}</td>
+      <td style="font-size:10px;color:#8b949e;white-space:nowrap;">${d.sector || '—'}</td>
+      <td style="text-align:right"><span class="val ${pctCls(cur)}">${pct(cur)}</span></td>
+      <td style="text-align:right"><span class="val ${avg===null?'muted':''}">${avg!==null?(avg*100).toFixed(2)+'%':'—'}</span></td>
+      <td style="text-align:right"><span class="val ${signCls(vsAvg!==null?vsAvg/100:null)}">${signFmt(vsAvg)}</span></td>
+      <td style="text-align:right"><span class="val ${pctCls(sy)}">${pct(sy)}</span></td>
+      <td style="text-align:right"><span class="val ${fcfni===null?'muted':fcfni>1?'green':fcfni>0?'amber':'red'}">${fcfni!==null?fcfni.toFixed(2):'—'}</span></td>
+      <td style="text-align:right"><span class="val ${fcfGr===null?'muted':fcfGr>0?'green':'red'}">${fcfGr!==null?(fcfGr*100).toFixed(1)+'%':'—'}</span></td>
+      <td style="text-align:right"><span class="val ${fcfSt===null?'muted':fcfSt>=0.66?'green':fcfSt>=0.33?'amber':'red'}">${fcfSt!==null?(fcfSt*100).toFixed(0)+'%':'—'}</span></td>
+      <td style="text-align:right"><span class="val ${signCls(vsTres)}">${vsTres!==null?(vsTres>0?'+':'')+(vsTres*100).toFixed(2)+'%':'—'}</span></td>
+      <td style="text-align:right"><span class="val ${pfcf===null?'muted':''}">${pfcf!==null?pfcf.toFixed(1)+'x':'—'}</span></td>
+      <td style="text-align:right"><span class="val muted">${pfcfAv!==null?pfcfAv.toFixed(1)+'x':'—'}</span></td>
+      <td style="text-align:right"><span class="val ${pfcfVs===null?'muted':pfcfVs>20?'red':pfcfVs<0?'green':'amber'}">${pfcfVs!==null?(pfcfVs>0?'+':'')+pfcfVs.toFixed(1)+'%':'—'}</span></td>
+      <td style="text-align:center">${green===true?'<span style="color:#3fb950;font-size:14px;">✓</span>':green===false?'<span style="color:#484f58;font-size:12px;">✗</span>':'<span style="color:#484f58;">—</span>'}</td>
+      <td><span class="trend-badge ${trend}">${trend==='improving'?'↑ Imp':trend==='mixed'?'~ Mix':trend==='deteriorating'?'↓ Dec':'n/a'}</span></td>
+      <td><span class="proj-badge ${proj}">${proj==='likely_up'?'↑ Up':proj==='likely_down'?'↓ Dn':'?'}</span></td>
+      <td style="text-align:right"><span class="val muted" style="font-size:11px;">${fmtCap(d.marketCap)}</span></td>`;
+    rows.push({ tr, sortVal });
+  });
+
+  // Sort by selected ranking signal (descending by default, except pFCFVsAvg ascending)
+  rows.sort((a, b) => b.sortVal - a.sortVal);
+  rows.forEach(({ tr }) => tbody.appendChild(tr));
+
+  // Show treasury rate in status
+  const tStr = screenerData.treasury10yr
+    ? ` · 10yr Treasury: ${(screenerData.treasury10yr*100).toFixed(2)}%`
+    : '';
+  document.getElementById('screener-count').textContent =
+    matched + ' results' + (matched === 0 ? ' — try loosening filters' : '');
+  setScreenerStatus('Screened ' + Object.keys(data).length + ' tickers → ' + matched + ' matches' + tStr, '');
+}
+
+// ── Sort screener table ───────────────────────────────────────────────────────
+function sortScreener(th) {
+  const col    = th.getAttribute('data-col');
+  const isAsc  = !th.classList.contains('asc');
+  th.closest('thead').querySelectorAll('th.sortable').forEach(h => h.classList.remove('asc','desc'));
+  th.classList.add(isAsc ? 'asc' : 'desc');
+
+  // Map col name to td index
+  const colMap = { 'scr-cur': 3, 'scr-avg': 4, 'scr-vs': 5, 'scr-cap': 8 };
+  const tdIdx  = colMap[col];
+  if (tdIdx === undefined) return;
+
+  const tbody = document.getElementById('screener-tbody');
+  const rows  = Array.from(tbody.querySelectorAll('tr'));
+  rows.sort((a, b) => {
+    const va = parseFloat(a.children[tdIdx].getAttribute('data-val'));
+    const vb = parseFloat(b.children[tdIdx].getAttribute('data-val'));
+    if (isNaN(va) && isNaN(vb)) return 0;
+    if (isNaN(va)) return 1;
+    if (isNaN(vb)) return -1;
+    return isAsc ? va - vb : vb - va;
+  });
+  rows.forEach(r => tbody.appendChild(r));
 }
 
 // ── Sort table ───────────────────────────────────────────────────────────────
@@ -817,6 +1252,13 @@ function buildUI() {
     t.onclick = () => switchPortfolio(p.id);
     ptabs.appendChild(t);
   });
+  // Screener tab
+  const st = document.createElement('div');
+  st.className = 'ptab';
+  st.id = 'ptab-screener';
+  st.textContent = '🔍 FCF Screener';
+  st.onclick = () => switchToScreener();
+  ptabs.appendChild(st);
 
   // Panels
   const container = document.getElementById('portfolio-panels');
@@ -902,9 +1344,11 @@ function buildUI() {
 function switchPortfolio(id) {
   activePortfolioId = id;
   document.querySelectorAll('.portfolio-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.screener-panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.ptab').forEach(t => t.classList.remove('active'));
   document.getElementById('panel-' + id).classList.add('active');
   document.getElementById('ptab-' + id).classList.add('active');
+  document.getElementById('fetch-btn').style.display = '';
   setStatus('Switched to ' + PORTFOLIOS.find(p => p.id === id).name + ' — click LOAD DATA to fetch', '');
   setProgress(0, 1);
   setETA('');
@@ -1109,7 +1553,6 @@ async function fetchCurrentPortfolio() {
 }
 
 /* FCF_DATA_START */
-window._FCF_DATA={"updated":"2026-06-24 15:17 UTC","data":{"AAPL":{"current":0.023148831319876943,"history":[{"year":2022,"fcfYield":0.0594},{"year":2023,"fcfYield":0.0356},{"year":2024,"fcfYield":0.0296},{"year":2025,"fcfYield":0.0247}],"avg5y":0.0373},"ABBV":{"current":0.050455424844722076,"history":[{"year":2022,"fcfYield":0.0963},{"year":2023,"fcfYield":0.0879},{"year":2024,"fcfYield":0.0603},{"year":2025,"fcfYield":0.0446}],"avg5y":0.0723},"ACN":{"current":0.15417324789154427,"history":[{"year":2022,"fcfYield":0.0571},{"year":2023,"fcfYield":0.0435},{"year":2024,"fcfYield":0.0409},{"year":2025,"fcfYield":0.0664}],"avg5y":0.052},"AIG":{"current":0.23293655392439236,"history":[{"year":2022,"fcfYield":0.1335},{"year":2023,"fcfYield":0.1836},{"year":2024,"fcfYield":0.088},{"year":2025,"fcfYield":0.0735}],"avg5y":0.1197},"AMZN":{"current":0.0037630697369332995,"history":[{"year":2022,"fcfYield":-0.0187},{"year":2023,"fcfYield":0.0197},{"year":2024,"fcfYield":0.0138},{"year":2025,"fcfYield":0.0031}],"avg5y":0.0045},"ASML":{"current":0.012158503214528063,"history":[{"year":2022,"fcfYield":0.0351},{"year":2023,"fcfYield":0.0114},{"year":2024,"fcfYield":0.0343},{"year":2025,"fcfYield":0.0268}],"avg5y":0.0269},"AVGO":{"current":0.01483207330808133,"history":[{"year":2022,"fcfYield":0.0644},{"year":2023,"fcfYield":0.0341},{"year":2024,"fcfYield":0.0175},{"year":2025,"fcfYield":0.0162}],"avg5y":0.0331},"AXP":{"current":null,"history":[{"year":2022,"fcfYield":0.199},{"year":2023,"fcfYield":0.1367},{"year":2024,"fcfYield":0.0608},{"year":2025,"fcfYield":0.0632}],"avg5y":0.1149},"BAC":{"current":null,"history":[{"year":2022,"fcfYield":-0.0294},{"year":2023,"fcfYield":0.1997},{"year":2024,"fcfYield":-0.0292},{"year":2025,"fcfYield":0.0325}],"avg5y":0.0434},"BIDU":{"current":0.21546991109617736,"history":[{"year":2022,"fcfYield":0.5657},{"year":2023,"fcfYield":0.7738},{"year":2024,"fcfYield":0.5619},{"year":2025,"fcfYield":-0.4517}],"avg5y":0.3624},"BRK-B":{"current":0.05713202599602784,"history":[{"year":2022,"fcfYield":0.0507},{"year":2023,"fcfYield":0.0597},{"year":2024,"fcfYield":0.0184},{"year":2025,"fcfYield":0.0356}],"avg5y":0.0411},"BRK.B":{"current":0.05713202599602784,"history":[{"year":2022,"fcfYield":0.0507},{"year":2023,"fcfYield":0.0597},{"year":2024,"fcfYield":0.0184},{"year":2025,"fcfYield":0.0356}],"avg5y":0.0411},"BYDDY":{"current":-1.3295275449930575,"history":[{"year":2022,"fcfYield":1.4894},{"year":2023,"fcfYield":1.4465},{"year":2024,"fcfYield":0.8711},{"year":2025,"fcfYield":-2.1265}],"avg5y":0.4201},"C":{"current":null,"history":[{"year":2022,"fcfYield":0.2838},{"year":2023,"fcfYield":-0.9817},{"year":2024,"fcfYield":-0.2263},{"year":2025,"fcfYield":-0.3746}],"avg5y":-0.3247},"CB":{"current":0.09742773274645819,"history":[{"year":2022,"fcfYield":0.1373},{"year":2023,"fcfYield":0.1479},{"year":2024,"fcfYield":0.1534},{"year":2025,"fcfYield":0.1058}],"avg5y":0.1361},"CI":{"current":0.09398037750120569,"history":[{"year":2022,"fcfYield":0.0897},{"year":2023,"fcfYield":0.1356},{"year":2024,"fcfYield":0.127},{"year":2025,"fcfYield":0.116}],"avg5y":0.1171},"CMCSA":{"current":0.04945733279974009,"history":[{"year":2022,"fcfYield":0.122},{"year":2023,"fcfYield":0.0968},{"year":2024,"fcfYield":0.1067},{"year":2025,"fcfYield":0.1967}],"avg5y":0.1305},"COF":{"current":null,"history":[{"year":2022,"fcfYield":0.2387},{"year":2023,"fcfYield":0.252},{"year":2024,"fcfYield":0.1579},{"year":2025,"fcfYield":0.1753}],"avg5y":0.206},"COP":{"current":0.04077981556634127,"history":[{"year":2022,"fcfYield":0.1414},{"year":2023,"fcfYield":0.0666},{"year":2024,"fcfYield":0.0711},{"year":2025,"fcfYield":0.0641}],"avg5y":0.0858},"CRM":{"current":0.12983383910981283,"history":[{"year":2023,"fcfYield":0.0298},{"year":2024,"fcfYield":0.0349},{"year":2025,"fcfYield":0.0574}],"avg5y":0.0407},"CVS":{"current":0.04073482084804441,"history":[{"year":2022,"fcfYield":0.129},{"year":2023,"fcfYield":0.114},{"year":2024,"fcfYield":0.1197},{"year":2025,"fcfYield":0.0779}],"avg5y":0.1101},"CVX":{"current":0.03453505085650018,"history":[{"year":2022,"fcfYield":0.1217},{"year":2023,"fcfYield":0.0741},{"year":2024,"fcfYield":0.0563},{"year":2025,"fcfYield":0.0557}],"avg5y":0.0769},"DE":{"current":0.006677692368432661,"history":[{"year":2022,"fcfYield":0.0082},{"year":2023,"fcfYield":0.0394},{"year":2024,"fcfYield":0.0394},{"year":2025,"fcfYield":0.0256}],"avg5y":0.0281},"DIS":{"current":0.020806066249968197,"history":[{"year":2022,"fcfYield":0.0072},{"year":2023,"fcfYield":0.0319},{"year":2024,"fcfYield":0.045},{"year":2025,"fcfYield":0.0506}],"avg5y":0.0337},"ELV":{"current":0.05113739852983067,"history":[{"year":2022,"fcfYield":0.0688},{"year":2023,"fcfYield":0.0689},{"year":2024,"fcfYield":0.0585},{"year":2025,"fcfYield":0.0423}],"avg5y":0.0596},"EOG":{"current":0.04015663276023633,"history":[{"year":2022,"fcfYield":0.1004},{"year":2023,"fcfYield":0.0867},{"year":2024,"fcfYield":0.0946},{"year":2025,"fcfYield":0.0624}],"avg5y":0.086},"GM":{"current":0.31298601136355597,"history":[{"year":2022,"fcfYield":-0.1758},{"year":2023,"fcfYield":-0.1165},{"year":2024,"fcfYield":-0.1254},{"year":2025,"fcfYield":0.024}],"avg5y":-0.0984},"GOOGL":{"current":0.006516819165298149,"history":[{"year":2022,"fcfYield":0.117},{"year":2023,"fcfYield":0.0855},{"year":2024,"fcfYield":0.0652},{"year":2025,"fcfYield":0.0398}],"avg5y":0.0769},"GRRR":{"current":0.07916921792791745,"history":[{"year":2022,"fcfYield":-0.0052},{"year":2023,"fcfYield":-0.0885},{"year":2024,"fcfYield":-0.05},{"year":2025,"fcfYield":-0.0966}],"avg5y":-0.0601},"HD":{"current":0.02989311680456549,"history":[{"year":2023,"fcfYield":0.0354},{"year":2024,"fcfYield":0.048},{"year":2025,"fcfYield":0.0479}],"avg5y":0.0438},"HIMS":{"current":0.022439674698241662,"history":[{"year":2022,"fcfYield":-0.0236},{"year":2023,"fcfYield":0.0237},{"year":2024,"fcfYield":0.0353},{"year":2025,"fcfYield":0.0078}],"avg5y":0.0108},"HON":{"current":0.02028106198571148,"history":[{"year":2022,"fcfYield":0.038},{"year":2023,"fcfYield":0.0387},{"year":2024,"fcfYield":0.0399},{"year":2025,"fcfYield":0.044}],"avg5y":0.0401},"IBIT":{"current":null,"history":[],"avg5y":null},"INTC":{"current":-0.012249500288281506,"history":[{"year":2022,"fcfYield":-0.0735},{"year":2023,"fcfYield":-0.0573},{"year":2024,"fcfYield":-0.1572},{"year":2025,"fcfYield":-0.0264}],"avg5y":-0.0786},"IONQ":{"current":-0.004522242189982075,"history":[{"year":2022,"fcfYield":-0.0445},{"year":2023,"fcfYield":-0.02},{"year":2024,"fcfYield":-0.0075},{"year":2025,"fcfYield":-0.0177}],"avg5y":-0.0224},"JD":{"current":0.20087573885970444,"history":[{"year":2022,"fcfYield":0.5126},{"year":2023,"fcfYield":1.1105},{"year":2024,"fcfYield":1.0203},{"year":2025,"fcfYield":0.1284}],"avg5y":0.6929},"JNJ":{"current":0.02167950203396752,"history":[{"year":2022,"fcfYield":0.0448},{"year":2023,"fcfYield":0.0507},{"year":2024,"fcfYield":0.0545},{"year":2025,"fcfYield":0.0392}],"avg5y":0.0473},"JPM":{"current":null,"history":[{"year":2022,"fcfYield":0.3241},{"year":2023,"fcfYield":0.03},{"year":2024,"fcfYield":-0.0675},{"year":2025,"fcfYield":-0.1722}],"avg5y":0.0286},"KO":{"current":0.008932873032957395,"history":[{"year":2022,"fcfYield":0.0386},{"year":2023,"fcfYield":0.0413},{"year":2024,"fcfYield":0.0185},{"year":2025,"fcfYield":0.0178}],"avg5y":0.029},"LOW":{"current":0.0387283981326498,"history":[{"year":2023,"fcfYield":0.0568},{"year":2024,"fcfYield":0.046},{"year":2025,"fcfYield":0.057}],"avg5y":0.0533},"MA":{"current":0.03675209084612008,"history":[{"year":2022,"fcfYield":0.0338},{"year":2023,"fcfYield":0.0295},{"year":2024,"fcfYield":0.0297},{"year":2025,"fcfYield":0.0326}],"avg5y":0.0314},"MCD":{"current":0.030515724064975516,"history":[{"year":2022,"fcfYield":0.0318},{"year":2023,"fcfYield":0.0365},{"year":2024,"fcfYield":0.0336},{"year":2025,"fcfYield":0.0332}],"avg5y":0.0338},"MDT":{"current":0.044599445758356296,"history":[{"year":2023,"fcfYield":0.0467},{"year":2024,"fcfYield":0.0531},{"year":2025,"fcfYield":0.0422}],"avg5y":0.0473},"META":{"current":0.017760876983632528,"history":[{"year":2022,"fcfYield":0.0736},{"year":2023,"fcfYield":0.0572},{"year":2024,"fcfYield":0.0419},{"year":2025,"fcfYield":0.0316}],"avg5y":0.0511},"MRK":{"current":0.04744451345507114,"history":[{"year":2022,"fcfYield":0.0597},{"year":2023,"fcfYield":0.0367},{"year":2024,"fcfYield":0.0784},{"year":2025,"fcfYield":0.0479}],"avg5y":0.0557},"MRSH":{"current":0.0621404974767544,"history":[{"year":2022,"fcfYield":0.0397},{"year":2023,"fcfYield":0.0438},{"year":2024,"fcfYield":0.0401},{"year":2025,"fcfYield":0.056}],"avg5y":0.0449},"MSFT":{"current":0.01328527088976027,"history":[{"year":2022,"fcfYield":0.0376},{"year":2023,"fcfYield":0.0217},{"year":2024,"fcfYield":0.0237},{"year":2025,"fcfYield":0.0199}],"avg5y":0.0257},"NEE":{"current":-0.10195863563375862,"history":[{"year":2022,"fcfYield":-0.0094},{"year":2023,"fcfYield":0.0149},{"year":2024,"fcfYield":0.0332},{"year":2025,"fcfYield":0.0194}],"avg5y":0.0145},"NOC":{"current":0.02879544880545939,"history":[{"year":2022,"fcfYield":0.02},{"year":2023,"fcfYield":0.0329},{"year":2024,"fcfYield":0.0405},{"year":2025,"fcfYield":0.0408}],"avg5y":0.0336},"ONDS":{"current":-0.003703896871772729,"history":[{"year":2022,"fcfYield":-0.0488},{"year":2023,"fcfYield":-0.0426},{"year":2024,"fcfYield":-0.024},{"year":2025,"fcfYield":-0.0086}],"avg5y":-0.031},"OSCR":{"current":0.18661653771657968,"history":[{"year":2022,"fcfYield":0.5371},{"year":2023,"fcfYield":-0.1224},{"year":2024,"fcfYield":0.2632},{"year":2025,"fcfYield":0.2743}],"avg5y":0.238},"PEGA":{"current":0.10462141850126894,"history":[{"year":2022,"fcfYield":-0.0046},{"year":2023,"fcfYield":0.0495},{"year":2024,"fcfYield":0.0435},{"year":2025,"fcfYield":0.0479}],"avg5y":0.0341},"PEP":{"current":0.04467228434879761,"history":[{"year":2022,"fcfYield":0.0255},{"year":2023,"fcfYield":0.0374},{"year":2024,"fcfYield":0.0368},{"year":2025,"fcfYield":0.0397}],"avg5y":0.0348},"PFE":{"current":0.08921731484445032,"history":[{"year":2022,"fcfYield":0.1096},{"year":2023,"fcfYield":0.0344},{"year":2024,"fcfYield":0.0724},{"year":2025,"fcfYield":0.0659}],"avg5y":0.0706},"PG":{"current":0.03579275400302624,"history":[{"year":2022,"fcfYield":0.0421},{"year":2023,"fcfYield":0.0431},{"year":2024,"fcfYield":0.0442},{"year":2025,"fcfYield":0.0425}],"avg5y":0.043},"PM":{"current":0.030958764376178716,"history":[{"year":2022,"fcfYield":0.0714},{"year":2023,"fcfYield":0.059},{"year":2024,"fcfYield":0.0602},{"year":2025,"fcfYield":0.0426}],"avg5y":0.0583},"QBTS":{"current":-0.0073577227483442725,"history":[{"year":2022,"fcfYield":-0.0865},{"year":2023,"fcfYield":-0.1896},{"year":2024,"fcfYield":-0.0132},{"year":2025,"fcfYield":-0.0079}],"avg5y":-0.0743},"RTX":{"current":0.028880801703082798,"history":[{"year":2022,"fcfYield":0.0348},{"year":2023,"fcfYield":0.0437},{"year":2024,"fcfYield":0.0259},{"year":2025,"fcfYield":0.0303}],"avg5y":0.0337},"SCHW":{"current":null,"history":[{"year":2022,"fcfYield":0.0079},{"year":2023,"fcfYield":0.1633},{"year":2024,"fcfYield":0.0163},{"year":2025,"fcfYield":0.0505}],"avg5y":0.0595},"SE":{"current":0.015477928404046284,"history":[{"year":2022,"fcfYield":-0.0689},{"year":2023,"fcfYield":0.0793},{"year":2024,"fcfYield":0.0485},{"year":2025,"fcfYield":0.0618}],"avg5y":0.0302},"TMO":{"current":0.03044098609444675,"history":[{"year":2022,"fcfYield":0.0341},{"year":2023,"fcfYield":0.0354},{"year":2024,"fcfYield":0.0379},{"year":2025,"fcfYield":0.0291}],"avg5y":0.0341},"TSLA":{"current":0.0036409998275345537,"history":[{"year":2022,"fcfYield":0.0163},{"year":2023,"fcfYield":0.0047},{"year":2024,"fcfYield":0.0023},{"year":2025,"fcfYield":0.0036}],"avg5y":0.0067},"TXN":{"current":0.0038475803790634254,"history":[{"year":2022,"fcfYield":0.0436},{"year":2023,"fcfYield":0.0093},{"year":2024,"fcfYield":0.0091},{"year":2025,"fcfYield":0.0165}],"avg5y":0.0196},"UNH":{"current":0.048192528046776546,"history":[{"year":2022,"fcfYield":0.052},{"year":2023,"fcfYield":0.0567},{"year":2024,"fcfYield":0.0466},{"year":2025,"fcfYield":0.054}],"avg5y":0.0523},"UNP":{"current":0.025868578349512134,"history":[{"year":2022,"fcfYield":0.0506},{"year":2023,"fcfYield":0.0346},{"year":2024,"fcfYield":0.0451},{"year":2025,"fcfYield":0.0402}],"avg5y":0.0426},"V":{"current":0.032800240434850865,"history":[{"year":2022,"fcfYield":0.0533},{"year":2023,"fcfYield":0.0464},{"year":2024,"fcfYield":0.0361},{"year":2025,"fcfYield":0.0369}],"avg5y":0.0432},"WFC":{"current":null,"history":[{"year":2022,"fcfYield":0.234},{"year":2023,"fcfYield":0.284},{"year":2024,"fcfYield":0.0145},{"year":2025,"fcfYield":-0.0665}],"avg5y":0.1165},"WMT":{"current":0.007207453997508116,"history":[{"year":2023,"fcfYield":0.0294},{"year":2024,"fcfYield":0.0213},{"year":2025,"fcfYield":0.0143}],"avg5y":0.0217},"XOM":{"current":0.020650178363101825,"history":[{"year":2022,"fcfYield":0.1435},{"year":2023,"fcfYield":0.0877},{"year":2024,"fcfYield":0.0736},{"year":2025,"fcfYield":0.0477}],"avg5y":0.0881},"ZETA":{"current":0.0523004111510137,"history":[{"year":2022,"fcfYield":0.0213},{"year":2023,"fcfYield":0.0274},{"year":2024,"fcfYield":0.0226},{"year":2025,"fcfYield":0.0352}],"avg5y":0.0266},"ZVRA":{"current":0.03318062879101575,"history":[{"year":2022,"fcfYield":-0.0693},{"year":2023,"fcfYield":-0.0874},{"year":2024,"fcfYield":-0.1435},{"year":2025,"fcfYield":-0.0047}],"avg5y":-0.0762}}};
 /* FCF_DATA_END */
 // ── Init ─────────────────────────────────────────────────────────────────────
 buildUI();
