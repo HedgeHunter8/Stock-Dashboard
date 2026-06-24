@@ -1,13 +1,26 @@
-name: Nightly FCF Data Fetch
+name: Nightly Data Fetch
 
 on:
   schedule:
-    - cron: '0 0 * * *'
+    # Portfolio FCF + screener: runs every Sunday at midnight UTC
+    # Portfolio FCF only: runs Mon-Sat at midnight UTC
+    - cron: '0 0 * * 0'   # Sunday — runs both scripts
+    - cron: '0 0 * * 1-6' # Mon-Sat — runs portfolio FCF only
   workflow_dispatch:
+    inputs:
+      run_screener:
+        description: 'Also run Russell 3000 screener fetch (takes ~45-60 min)'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
 
 jobs:
   fetch-fcf:
     runs-on: ubuntu-latest
+    timeout-minutes: 90
 
     permissions:
       contents: write
@@ -24,13 +37,18 @@ jobs:
       - name: Install dependencies
         run: pip install yfinance
 
-      - name: Run FCF fetch script
+      - name: Run portfolio FCF fetch
         run: python fetch_fcf.py
+
+      - name: Run Russell 3000 screener fetch (Sundays + manual trigger)
+        if: github.event.schedule == '0 0 * * 0' || github.event.inputs.run_screener == 'true'
+        run: python fetch_screener.py
 
       - name: Commit and push updated files
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add fcf_data.json index.html
-          git diff --staged --quiet || git commit -m "chore: nightly FCF data update $(date -u '+%Y-%m-%d')"
+          git add screener_data.json || true
+          git diff --staged --quiet || git commit -m "chore: data update $(date -u '+%Y-%m-%d')"
           git push
