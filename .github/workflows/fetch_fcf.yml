@@ -27,10 +27,10 @@ jobs:
       - name: Run FCF fetch script
         run: python fetch_fcf.py
 
-      - name: Commit and push fcf_data.json
+      - name: Commit and push updated files
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add fcf_data.json
+          git add fcf_data.json index.html
           git diff --staged --quiet || git commit -m "chore: nightly FCF data update $(date -u '+%Y-%m-%d')"
           git push
