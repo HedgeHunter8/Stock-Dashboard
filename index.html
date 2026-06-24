@@ -500,23 +500,21 @@ async function apiGet(sym, interval, retries) {
   return data;
 }
 
-// ── Load FCF data from pre-fetched JSON ──────────────────────────────────────
-async function loadFCFData() {
+// ── Load FCF data — injected directly by fetch_fcf.py (no fetch needed) ────
+function loadFCFData() {
   try {
-    // Fetch from same origin (GitHub Pages serves it from repo root)
-    const res = await fetch('fcf_data.json');
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const json = await res.json();
-    fcfData = json.data || {};
-    const updated = json.updated || 'unknown';
-    const count = Object.values(fcfData).filter(v => v !== null).length;
-    console.log('FCF data loaded: ' + count + ' tickers, updated ' + updated);
-    // Update subtitle to show FCF data freshness
-    const sub = document.querySelector('.sub-title');
-    if (sub) sub.textContent += ' · FCF data: ' + updated;
+    if (window._FCF_DATA) {
+      fcfData = window._FCF_DATA.data || {};
+      const updated = window._FCF_DATA.updated || 'unknown';
+      const count = Object.values(fcfData).filter(v => v && v.current !== null).length;
+      console.log('FCF data loaded inline: ' + count + ' tickers, updated ' + updated);
+      const sub = document.querySelector('.sub-title');
+      if (sub) sub.textContent += ' · FCF: ' + updated;
+    } else {
+      console.warn('FCF data not yet injected — run GitHub Action to populate');
+    }
   } catch (e) {
-    console.warn('FCF data not available:', e.message);
-    // Silently continue — dashboard works fine without FCF
+    console.warn('FCF data error:', e.message);
   }
 }
 
@@ -1109,6 +1107,8 @@ async function fetchCurrentPortfolio() {
   setProgress(total, total);
 }
 
+/* FCF_DATA_START */
+/* FCF_DATA_END */
 // ── Init ─────────────────────────────────────────────────────────────────────
 buildUI();
 loadFCFData();
