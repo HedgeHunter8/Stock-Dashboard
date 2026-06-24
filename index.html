@@ -357,6 +357,7 @@ const MAX_PER_WINDOW = 8;
 
 let activePortfolioId = PORTFOLIOS[0].id;
 let fetchAbort = false;
+let fcfData = {}; // loaded from fcf_data.json on page load
 const tickerData = {}; // stores daily closes + volume keyed by sym
 const openDrawer = { sym: null, charts: [] }; // track open drawer
 
@@ -491,6 +492,26 @@ async function apiGet(sym, interval, retries) {
   callTimestamps.push(Date.now());
   updCredits();
   return data;
+}
+
+// ── Load FCF data from pre-fetched JSON ──────────────────────────────────────
+async function loadFCFData() {
+  try {
+    // Fetch from same origin (GitHub Pages serves it from repo root)
+    const res = await fetch('fcf_data.json');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const json = await res.json();
+    fcfData = json.data || {};
+    const updated = json.updated || 'unknown';
+    const count = Object.values(fcfData).filter(v => v !== null).length;
+    console.log('FCF data loaded: ' + count + ' tickers, updated ' + updated);
+    // Update subtitle to show FCF data freshness
+    const sub = document.querySelector('.sub-title');
+    if (sub) sub.textContent += ' · FCF data: ' + updated;
+  } catch (e) {
+    console.warn('FCF data not available:', e.message);
+    // Silently continue — dashboard works fine without FCF
+  }
 }
 
 // ── Sort table ───────────────────────────────────────────────────────────────
@@ -824,6 +845,7 @@ function buildUI() {
               <th class="sortable" data-col="rsid" data-pid="${p.id}" onclick="sortTable(this)">Daily RSI<span class="sort-icon"></span></th>
               <th class="sortable" data-col="rsiw" data-pid="${p.id}" onclick="sortTable(this)">Weekly RSI<span class="sort-icon"></span></th>
               <th class="sortable" data-col="atr" data-pid="${p.id}" onclick="sortTable(this)">ATR (14)<span class="sort-icon"></span></th>
+              <th class="sortable" data-col="fcfy" data-pid="${p.id}" onclick="sortTable(this)">FCF Yield<span class="sort-icon"></span></th>
               <th>Status</th>
             </tr>
           </thead>
@@ -852,6 +874,7 @@ function buildUI() {
         <td data-val=""><span class="rsi-badge muted" id="${p.id}-${safeId}-rsid">—</span></td>
         <td data-val=""><span class="rsi-badge muted" id="${p.id}-${safeId}-rsiw">—</span></td>
         <td data-val=""><span class="val muted" id="${p.id}-${safeId}-atr">—</span></td>
+        <td data-val=""><span class="val muted" id="${p.id}-${safeId}-fcfy">—</span></td>
         <td><span class="row-status" id="${p.id}-${safeId}-st">pending</span></td>`;
       tbody.appendChild(tr);
       // Drawer row (hidden by default)
@@ -954,6 +977,23 @@ function renderRow(portfolioId, sym, dailyData, weeklyData) {
     setTdVal(pid+'-'+safeId+'-atr', atr);
   }
 
+  // FCF Yield from pre-fetched JSON
+  const fcfRaw = fcfData[sym];
+  const fcfEl  = document.getElementById(pid+'-'+safeId+'-fcfy');
+  if (fcfEl) {
+    if (typeof fcfRaw === 'number') {
+      const fcfPct = (fcfRaw * 100).toFixed(2) + '%';
+      fcfEl.textContent = fcfPct;
+      // Color: >= 5% strong green, 2-5% green, 0-2% amber, negative red
+      const cls = fcfRaw >= 0.05 ? 'green' : fcfRaw >= 0.02 ? '' : fcfRaw >= 0 ? 'amber' : 'red';
+      fcfEl.className = 'val' + (cls ? ' ' + cls : '');
+      fcfEl.parentElement.setAttribute('data-val', fcfRaw * 100);
+    } else {
+      fcfEl.textContent = '—';
+      fcfEl.className = 'val muted';
+    }
+  }
+
   const st = document.getElementById(pid + '-' + safeId + '-st');
   if (st) { st.textContent = '✓ done'; st.className = 'row-status done'; }
 }
@@ -1002,7 +1042,7 @@ async function fetchCurrentPortfolio() {
     if (st) { st.textContent = 'pending'; st.className = 'row-status'; }
     const priceReset = document.getElementById(portfolio.id + '-' + safeId + '-price');
     if (priceReset) { priceReset.textContent = '—'; priceReset.className = 'val muted'; }
-    ['sma50','sma200','vs200','sma200w','atr'].forEach(f => {
+    ['sma50','sma200','vs200','sma200w','atr','fcfy'].forEach(f => {
       const el = document.getElementById(portfolio.id + '-' + safeId + '-' + f);
       if (el) { el.textContent = '—'; el.className = 'val muted'; if (el.parentElement) el.parentElement.setAttribute('data-val',''); }
     });
@@ -1061,6 +1101,7 @@ async function fetchCurrentPortfolio() {
 
 // ── Init ─────────────────────────────────────────────────────────────────────
 buildUI();
+loadFCFData();
 </script>
 </body>
 </html>
