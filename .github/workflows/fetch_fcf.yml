@@ -20,7 +20,7 @@ on:
 jobs:
   fetch-fcf:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 360
 
     permissions:
       contents: write
