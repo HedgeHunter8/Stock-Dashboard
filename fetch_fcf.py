@@ -22,7 +22,7 @@ except ImportError:
 
 TICKERS = sorted(set([
     # Hunter's Portfolio
-    "AMZN", "ASML", "BIDU", "BYDDY", "CRM", "GOOGL", "GRRR", "HIMS",
+    "AMZN", "ASML", "BABA", "BIDU", "BYDDY", "CRM", "GOOGL", "GRRR", "HIMS",
     "IONQ", "JD", "ONDS", "OSCR", "PEGA", "PEP", "QBTS", "SE",
     "TSLA", "UNH", "ZETA", "ZVRA", "IBIT",
     # Dividend Growth Portfolio
