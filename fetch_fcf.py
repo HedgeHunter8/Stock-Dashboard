@@ -25,6 +25,9 @@ TICKERS = sorted(set([
     "AMZN", "ASML", "BABA", "BIDU", "BYDDY", "CRM", "GOOGL", "GRRR", "HIMS",
     "IONQ", "JD", "ONDS", "OSCR", "PEGA", "PEP", "QBTS", "SE",
     "TSLA", "UNH", "ZETA", "ZVRA", "IBIT",
+    # Scott's Portfolio
+    "ABT", "ADBE", "AMGN", "BKNG", "ETHE", "ELF", "EXE", "LULU",
+    "LVS", "NKE", "NOW", "NVO", "PYPL", "SPOT", "TMDX", "WDAY",
     # Dividend Growth Portfolio
     "AAPL", "ABBV", "ACN", "AVGO", "BAC", "CB", "CMCSA", "CVX",
     "ELV", "EOG", "HD", "HON", "JNJ", "JPM", "KO", "MA", "MCD",
@@ -40,6 +43,7 @@ SYMBOL_MAP = {
     "BRK.B":   "BRK-B",
     "ETH/USD": None,
     "IBIT":    None,
+    "ETHE":    None,  # Grayscale Ethereum ETF — no FCF
 }
 
 def get_fcf_data(ticker_sym):
