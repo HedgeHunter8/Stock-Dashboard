@@ -1,5 +1,5 @@
 {
-  "updated": "2026-06-27 09:20 UTC",
+  "updated": "2026-06-28 10:14 UTC",
   "data": {
     "AAPL": {
       "current": 0.02425414629033457,
@@ -588,7 +588,7 @@
       "avg5y": 0.0769
     },
     "DE": {
-      "current": 0.006633337124996291,
+      "current": 0.006637511379672594,
       "history": [
         {
           "year": 2022,
@@ -831,22 +831,22 @@
       "history": [
         {
           "year": 2022,
-          "fcfYield": 0.0759
+          "fcfYield": 0.0772
         },
         {
           "year": 2023,
-          "fcfYield": 0.0775
+          "fcfYield": 0.077
         },
         {
           "year": 2024,
-          "fcfYield": 0.0797
+          "fcfYield": 0.0776
         },
         {
           "year": 2025,
-          "fcfYield": 0.0881
+          "fcfYield": 0.089
         }
       ],
-      "avg5y": 0.0803
+      "avg5y": 0.0802
     },
     "IBIT": {
       "current": null,
@@ -986,7 +986,7 @@
       "avg5y": 0.029
     },
     "LOW": {
-      "current": 0.03858725680228977,
+      "current": 0.03860741731764728,
       "history": [
         {
           "year": 2023,
@@ -994,14 +994,14 @@
         },
         {
           "year": 2024,
-          "fcfYield": 0.0459
+          "fcfYield": 0.046
         },
         {
           "year": 2025,
           "fcfYield": 0.057
         }
       ],
-      "avg5y": 0.0532
+      "avg5y": 0.0533
     },
     "LULU": {
       "current": 0.0849374974640715,
