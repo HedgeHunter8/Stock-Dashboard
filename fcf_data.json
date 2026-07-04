@@ -1,5 +1,5 @@
 {
-  "updated": "2026-07-03 10:17 UTC",
+  "updated": "2026-07-04 09:10 UTC",
   "data": {
     "AAPL": {
       "current": 0.022301271230646826,
@@ -588,11 +588,11 @@
       "avg5y": 0.0769
     },
     "DE": {
-      "current": 0.0065517204153796044,
+      "current": 0.006547600276227478,
       "history": [
         {
           "year": 2022,
-          "fcfYield": 0.0083
+          "fcfYield": 0.0082
         },
         {
           "year": 2023,
@@ -607,7 +607,7 @@
           "fcfYield": 0.0257
         }
       ],
-      "avg5y": 0.0283
+      "avg5y": 0.0282
     },
     "DIS": {
       "current": 0.021711495815265765,
@@ -986,7 +986,7 @@
       "avg5y": 0.029
     },
     "LOW": {
-      "current": 0.03775550698929075,
+      "current": 0.03773579259039218,
       "history": [
         {
           "year": 2023,
@@ -994,14 +994,14 @@
         },
         {
           "year": 2024,
-          "fcfYield": 0.046
+          "fcfYield": 0.0459
         },
         {
           "year": 2025,
           "fcfYield": 0.057
         }
       ],
-      "avg5y": 0.0533
+      "avg5y": 0.0532
     },
     "LULU": {
       "current": 0.0843207061844747,
@@ -1220,22 +1220,22 @@
       "history": [
         {
           "year": 2022,
-          "fcfYield": 0.0338
+          "fcfYield": 0.0335
         },
         {
           "year": 2023,
-          "fcfYield": 0.0396
+          "fcfYield": 0.0392
         },
         {
           "year": 2024,
-          "fcfYield": 0.0768
+          "fcfYield": 0.0761
         },
         {
           "year": 2025,
-          "fcfYield": 0.0452
+          "fcfYield": 0.0448
         }
       ],
-      "avg5y": 0.0488
+      "avg5y": 0.0484
     },
     "NOC": {
       "current": 0.02656685685047255,
@@ -1246,18 +1246,18 @@
         },
         {
           "year": 2023,
-          "fcfYield": 0.0329
+          "fcfYield": 0.0328
         },
         {
           "year": 2024,
-          "fcfYield": 0.0405
+          "fcfYield": 0.0404
         },
         {
           "year": 2025,
-          "fcfYield": 0.0408
+          "fcfYield": 0.0407
         }
       ],
-      "avg5y": 0.0336
+      "avg5y": 0.0335
     },
     "NOW": {
       "current": 0.04658629549519692,
