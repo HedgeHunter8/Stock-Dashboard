@@ -1,8 +1,8 @@
 {
-  "updated": "2026-08-10 00:55 UTC",
+  "updated": "2026-08-11 00:54 UTC",
   "data": {
     "AAPL": {
-      "current": 0.02355712237384161,
+      "current": 0.023944568686847263,
       "history": [
         {
           "year": 2022,
@@ -24,7 +24,7 @@
       "avg5y": 0.0375
     },
     "ABBV": {
-      "current": 0.03880167331161318,
+      "current": 0.038499670145456806,
       "history": [
         {
           "year": 2022,
@@ -46,29 +46,29 @@
       "avg5y": 0.0728
     },
     "ABT": {
-      "current": 0.03839033884719415,
+      "current": 0.03835574281737583,
       "history": [
         {
           "year": 2022,
-          "fcfYield": 0.0441
+          "fcfYield": 0.0444
         },
         {
           "year": 2023,
-          "fcfYield": 0.0279
+          "fcfYield": 0.0281
         },
         {
           "year": 2024,
-          "fcfYield": 0.0335
+          "fcfYield": 0.0338
         },
         {
           "year": 2025,
-          "fcfYield": 0.0344
+          "fcfYield": 0.0346
         }
       ],
-      "avg5y": 0.035
+      "avg5y": 0.0352
     },
     "ACN": {
-      "current": 0.11242749943491212,
+      "current": 0.11083175344273957,
       "history": [
         {
           "year": 2022,
@@ -90,7 +90,7 @@
       "avg5y": 0.0526
     },
     "ADBE": {
-      "current": 0.08744346099561488,
+      "current": 0.08496072692245665,
       "history": [
         {
           "year": 2022,
@@ -112,51 +112,51 @@
       "avg5y": 0.0498
     },
     "AIG": {
-      "current": 0.17817457384060903,
+      "current": 0.18148557614716143,
       "history": [
         {
           "year": 2022,
-          "fcfYield": 0.1349
+          "fcfYield": 0.1353
         },
         {
           "year": 2023,
-          "fcfYield": 0.1855
+          "fcfYield": 0.1862
         },
         {
           "year": 2024,
-          "fcfYield": 0.0889
+          "fcfYield": 0.0892
         },
         {
           "year": 2025,
-          "fcfYield": 0.0743
+          "fcfYield": 0.0745
         }
       ],
-      "avg5y": 0.1209
+      "avg5y": 0.1213
     },
     "AMGN": {
-      "current": 0.03898105604980951,
+      "current": 0.03830494068178078,
       "history": [
         {
           "year": 2022,
-          "fcfYield": 0.0692
+          "fcfYield": 0.069
         },
         {
           "year": 2023,
-          "fcfYield": 0.0511
+          "fcfYield": 0.051
         },
         {
           "year": 2024,
-          "fcfYield": 0.0778
+          "fcfYield": 0.0776
         },
         {
           "year": 2025,
-          "fcfYield": 0.0463
+          "fcfYield": 0.0462
         }
       ],
-      "avg5y": 0.0611
+      "avg5y": 0.0609
     },
     "AMZN": {
-      "current": 0.0010873117848239186,
+      "current": 0.001073197034082999,
       "history": [
         {
           "year": 2022,
@@ -178,7 +178,7 @@
       "avg5y": 0.0045
     },
     "ASML": {
-      "current": 0.012617758252587034,
+      "current": 0.012672423281607016,
       "history": [
         {
           "year": 2022,
@@ -200,7 +200,7 @@
       "avg5y": 0.027
     },
     "AVGO": {
-      "current": 0.013371438112887683,
+      "current": 0.013541114106688696,
       "history": [
         {
           "year": 2022,
@@ -244,7 +244,7 @@
       "avg5y": 0.1164
     },
     "BABA": {
-      "current": -0.1431993149417563,
+      "current": -0.13896782012779912,
       "history": [
         {
           "year": 2023,
@@ -284,7 +284,7 @@
       "avg5y": 0.044
     },
     "BIDU": {
-      "current": 0.21387166238231423,
+      "current": 0.2142818051594417,
       "history": [
         {
           "year": 2022,
@@ -306,73 +306,73 @@
       "avg5y": 0.3639
     },
     "BKNG": {
-      "current": 0.046499556205592825,
+      "current": 0.04830064295013423,
       "history": [
         {
           "year": 2022,
-          "fcfYield": 0.1011
+          "fcfYield": 0.1043
         },
         {
           "year": 2023,
-          "fcfYield": 0.065
+          "fcfYield": 0.067
         },
         {
           "year": 2024,
-          "fcfYield": 0.0517
+          "fcfYield": 0.0533
         },
         {
           "year": 2025,
-          "fcfYield": 0.0543
+          "fcfYield": 0.056
         }
       ],
-      "avg5y": 0.068
+      "avg5y": 0.0702
     },
     "BRK-B": {
-      "current": 0.05440352684349827,
+      "current": 0.06350750654357014,
       "history": [
         {
           "year": 2022,
-          "fcfYield": 0.0507
+          "fcfYield": 0.0503
         },
         {
           "year": 2023,
-          "fcfYield": 0.0597
+          "fcfYield": 0.0593
         },
         {
           "year": 2024,
-          "fcfYield": 0.0184
+          "fcfYield": 0.0182
         },
         {
           "year": 2025,
-          "fcfYield": 0.0356
+          "fcfYield": 0.0353
         }
       ],
-      "avg5y": 0.0411
+      "avg5y": 0.0408
     },
     "BRK.B": {
-      "current": 0.05440352684349827,
+      "current": 0.06350750654357014,
       "history": [
         {
           "year": 2022,
-          "fcfYield": 0.0507
+          "fcfYield": 0.0503
         },
         {
           "year": 2023,
-          "fcfYield": 0.0597
+          "fcfYield": 0.0593
         },
         {
           "year": 2024,
-          "fcfYield": 0.0184
+          "fcfYield": 0.0182
         },
         {
           "year": 2025,
-          "fcfYield": 0.0356
+          "fcfYield": 0.0353
         }
       ],
-      "avg5y": 0.0411
+      "avg5y": 0.0408
     },
     "BYDDY": {
-      "current": -1.1158327953392406,
+      "current": -1.0930413507343217,
       "history": [
         {
           "year": 2022,
@@ -416,7 +416,7 @@
       "avg5y": -0.3318
     },
     "CB": {
-      "current": 0.07760292495678804,
+      "current": 0.07805076568819028,
       "history": [
         {
           "year": 2022,
@@ -438,7 +438,7 @@
       "avg5y": 0.1368
     },
     "CI": {
-      "current": 0.10690728211033086,
+      "current": 0.10847787043876274,
       "history": [
         {
           "year": 2022,
@@ -460,7 +460,7 @@
       "avg5y": 0.1172
     },
     "CMCSA": {
-      "current": 0.14109501902776436,
+      "current": 0.14199085635619005,
       "history": [
         {
           "year": 2022,
@@ -504,7 +504,7 @@
       "avg5y": 0.2069
     },
     "COP": {
-      "current": 0.05443706395171862,
+      "current": 0.05203887818242484,
       "history": [
         {
           "year": 2022,
@@ -526,25 +526,12 @@
       "avg5y": 0.087
     },
     "CRM": {
-      "current": 0.10486268334480754,
-      "history": [
-        {
-          "year": 2023,
-          "fcfYield": 0.0298
-        },
-        {
-          "year": 2024,
-          "fcfYield": 0.0349
-        },
-        {
-          "year": 2025,
-          "fcfYield": 0.0574
-        }
-      ],
-      "avg5y": 0.0407
+      "current": null,
+      "history": [],
+      "avg5y": null
     },
     "CVS": {
-      "current": 0.06598176432304564,
+      "current": 0.06600245152567755,
       "history": [
         {
           "year": 2022,
@@ -566,7 +553,7 @@
       "avg5y": 0.1105
     },
     "CVX": {
-      "current": 0.05993604850703069,
+      "current": 0.057368372370108535,
       "history": [
         {
           "year": 2022,
@@ -588,11 +575,11 @@
       "avg5y": 0.0781
     },
     "DE": {
-      "current": 0.006552240838790003,
+      "current": 0.006680651273686907,
       "history": [
         {
           "year": 2022,
-          "fcfYield": 0.0082
+          "fcfYield": 0.0083
         },
         {
           "year": 2023,
@@ -607,10 +594,10 @@
           "fcfYield": 0.0257
         }
       ],
-      "avg5y": 0.0282
+      "avg5y": 0.0283
     },
     "DIS": {
-      "current": 0.02683114968010601,
+      "current": 0.027281024381469333,
       "history": [
         {
           "year": 2022,
@@ -632,7 +619,7 @@
       "avg5y": 0.0341
     },
     "ELF": {
-      "current": 0.01453727642551461,
+      "current": 0.015033350445031703,
       "history": [
         {
           "year": 2023,
@@ -650,7 +637,7 @@
       "avg5y": 0.0152
     },
     "ELV": {
-      "current": 0.05037292507044996,
+      "current": 0.04992961084522265,
       "history": [
         {
           "year": 2022,
@@ -672,26 +659,26 @@
       "avg5y": 0.0597
     },
     "EOG": {
-      "current": 0.0624073616318804,
+      "current": 0.060038041658563274,
       "history": [
         {
           "year": 2022,
-          "fcfYield": 0.1011
+          "fcfYield": 0.1027
         },
         {
           "year": 2023,
-          "fcfYield": 0.0873
+          "fcfYield": 0.0887
         },
         {
           "year": 2024,
-          "fcfYield": 0.0953
+          "fcfYield": 0.0968
         },
         {
           "year": 2025,
-          "fcfYield": 0.0628
+          "fcfYield": 0.0638
         }
       ],
-      "avg5y": 0.0866
+      "avg5y": 0.088
     },
     "ETHE": {
       "current": null,
@@ -699,29 +686,29 @@
       "avg5y": null
     },
     "EXE": {
-      "current": 0.06601754409907339,
+      "current": 0.06491994164714604,
       "history": [
         {
           "year": 2022,
-          "fcfYield": 0.1145
+          "fcfYield": 0.1183
         },
         {
           "year": 2023,
-          "fcfYield": 0.0322
+          "fcfYield": 0.0332
         },
         {
           "year": 2024,
-          "fcfYield": 0.0003
+          "fcfYield": 0.0004
         },
         {
           "year": 2025,
-          "fcfYield": 0.0621
+          "fcfYield": 0.0641
         }
       ],
-      "avg5y": 0.0523
+      "avg5y": 0.054
     },
     "GM": {
-      "current": 0.2768998120569213,
+      "current": 0.27570357985499677,
       "history": [
         {
           "year": 2022,
@@ -743,7 +730,7 @@
       "avg5y": -0.0982
     },
     "GOOGL": {
-      "current": 0.005230707854744783,
+      "current": 0.00518359731138575,
       "history": [
         {
           "year": 2022,
@@ -765,7 +752,7 @@
       "avg5y": 0.0769
     },
     "GRRR": {
-      "current": 0.10174599115405862,
+      "current": 0.09918160134888575,
       "history": [
         {
           "year": 2022,
@@ -787,25 +774,12 @@
       "avg5y": -0.0601
     },
     "HD": {
-      "current": 0.028562897748889256,
-      "history": [
-        {
-          "year": 2023,
-          "fcfYield": 0.0354
-        },
-        {
-          "year": 2024,
-          "fcfYield": 0.048
-        },
-        {
-          "year": 2025,
-          "fcfYield": 0.0479
-        }
-      ],
-      "avg5y": 0.0438
+      "current": null,
+      "history": [],
+      "avg5y": null
     },
     "HIMS": {
-      "current": 0.023839047175293695,
+      "current": 0.023703981498288798,
       "history": [
         {
           "year": 2022,
@@ -827,7 +801,7 @@
       "avg5y": 0.0108
     },
     "HON": {
-      "current": 0.03345185045892074,
+      "current": 0.033903512423513436,
       "history": [
         {
           "year": 2022,
@@ -854,7 +828,7 @@
       "avg5y": null
     },
     "INTC": {
-      "current": 0.009491244348535708,
+      "current": 0.009893201534215818,
       "history": [
         {
           "year": 2022,
@@ -876,51 +850,34 @@
       "avg5y": -0.0783
     },
     "IONQ": {
-      "current": -0.006129244767959225,
+      "current": -0.005899436245362991,
       "history": [
         {
           "year": 2022,
-          "fcfYield": -0.0445
+          "fcfYield": -0.041
         },
         {
           "year": 2023,
-          "fcfYield": -0.02
+          "fcfYield": -0.0184
         },
         {
           "year": 2024,
-          "fcfYield": -0.0075
+          "fcfYield": -0.0069
         },
         {
           "year": 2025,
-          "fcfYield": -0.0177
+          "fcfYield": -0.0163
         }
       ],
-      "avg5y": -0.0224
+      "avg5y": -0.0206
     },
     "JD": {
-      "current": 0.15734351694597962,
-      "history": [
-        {
-          "year": 2022,
-          "fcfYield": 0.5126
-        },
-        {
-          "year": 2023,
-          "fcfYield": 1.1105
-        },
-        {
-          "year": 2024,
-          "fcfYield": 1.0203
-        },
-        {
-          "year": 2025,
-          "fcfYield": 0.1284
-        }
-      ],
-      "avg5y": 0.6929
+      "current": null,
+      "history": [],
+      "avg5y": null
     },
     "JNJ": {
-      "current": 0.027027355373920817,
+      "current": 0.02676204557409171,
       "history": [
         {
           "year": 2022,
@@ -964,7 +921,7 @@
       "avg5y": 0.029
     },
     "KO": {
-      "current": 0.013933874073826511,
+      "current": 0.013962745176470073,
       "history": [
         {
           "year": 2022,
@@ -986,25 +943,12 @@
       "avg5y": 0.029
     },
     "LOW": {
-      "current": 0.03843695013857497,
-      "history": [
-        {
-          "year": 2023,
-          "fcfYield": 0.0572
-        },
-        {
-          "year": 2024,
-          "fcfYield": 0.0462
-        },
-        {
-          "year": 2025,
-          "fcfYield": 0.0573
-        }
-      ],
-      "avg5y": 0.0536
+      "current": null,
+      "history": [],
+      "avg5y": null
     },
     "LULU": {
-      "current": 0.07766449805092493,
+      "current": 0.0781385058857349,
       "history": [
         {
           "year": 2023,
@@ -1022,7 +966,7 @@
       "avg5y": 0.0382
     },
     "LVS": {
-      "current": 0.07464509559636887,
+      "current": 0.07515411559765309,
       "history": [
         {
           "year": 2022,
@@ -1044,7 +988,7 @@
       "avg5y": 0.0265
     },
     "MA": {
-      "current": 0.034393709421633084,
+      "current": 0.034380274609119334,
       "history": [
         {
           "year": 2022,
@@ -1066,47 +1010,34 @@
       "avg5y": 0.0318
     },
     "MCD": {
-      "current": 0.03211150677284109,
+      "current": 0.032331005116287566,
       "history": [
         {
           "year": 2022,
-          "fcfYield": 0.0318
+          "fcfYield": 0.0319
         },
         {
           "year": 2023,
-          "fcfYield": 0.0365
+          "fcfYield": 0.0367
         },
         {
           "year": 2024,
-          "fcfYield": 0.0336
+          "fcfYield": 0.0337
         },
         {
           "year": 2025,
-          "fcfYield": 0.0332
+          "fcfYield": 0.0334
         }
       ],
-      "avg5y": 0.0338
+      "avg5y": 0.0339
     },
     "MDT": {
-      "current": 0.04145762708628703,
-      "history": [
-        {
-          "year": 2023,
-          "fcfYield": 0.0471
-        },
-        {
-          "year": 2024,
-          "fcfYield": 0.0535
-        },
-        {
-          "year": 2025,
-          "fcfYield": 0.0426
-        }
-      ],
-      "avg5y": 0.0477
+      "current": null,
+      "history": [],
+      "avg5y": null
     },
     "META": {
-      "current": 0.014289270387077248,
+      "current": 0.014221536503239736,
       "history": [
         {
           "year": 2022,
@@ -1128,7 +1059,7 @@
       "avg5y": 0.0509
     },
     "MRK": {
-      "current": 0.047773710827532956,
+      "current": 0.04697028210324957,
       "history": [
         {
           "year": 2022,
@@ -1136,11 +1067,11 @@
         },
         {
           "year": 2023,
-          "fcfYield": 0.0367
+          "fcfYield": 0.0368
         },
         {
           "year": 2024,
-          "fcfYield": 0.0784
+          "fcfYield": 0.0785
         },
         {
           "year": 2025,
@@ -1150,7 +1081,7 @@
       "avg5y": 0.0557
     },
     "MRSH": {
-      "current": 0.052322093960633274,
+      "current": 0.0525579403178938,
       "history": [
         {
           "year": 2022,
@@ -1172,7 +1103,7 @@
       "avg5y": 0.0456
     },
     "MSFT": {
-      "current": 0.004456462043737614,
+      "current": 0.004403008478393884,
       "history": [
         {
           "year": 2023,
@@ -1190,7 +1121,7 @@
       "avg5y": 0.0218
     },
     "NEE": {
-      "current": -0.10063567098196351,
+      "current": -0.10055828932842537,
       "history": [
         {
           "year": 2022,
@@ -1212,7 +1143,7 @@
       "avg5y": 0.0145
     },
     "NKE": {
-      "current": 0.030539799766973495,
+      "current": 0.030242453412933825,
       "history": [
         {
           "year": 2023,
@@ -1230,7 +1161,7 @@
       "avg5y": 0.0538
     },
     "NOC": {
-      "current": 0.030517099408039986,
+      "current": 0.030183882145553467,
       "history": [
         {
           "year": 2022,
@@ -1252,7 +1183,7 @@
       "avg5y": 0.0336
     },
     "NOW": {
-      "current": 0.039884031199077075,
+      "current": 0.03908284509762227,
       "history": [
         {
           "year": 2022,
@@ -1274,29 +1205,29 @@
       "avg5y": 0.0223
     },
     "NVO": {
-      "current": 0.1803197937788769,
+      "current": 0.18015798464993346,
       "history": [
         {
           "year": 2022,
-          "fcfYield": 0.309
+          "fcfYield": 0.3127
         },
         {
           "year": 2023,
-          "fcfYield": 0.2178
+          "fcfYield": 0.2204
         },
         {
           "year": 2024,
-          "fcfYield": 0.2587
+          "fcfYield": 0.2618
         },
         {
           "year": 2025,
-          "fcfYield": 0.1754
+          "fcfYield": 0.1775
         }
       ],
-      "avg5y": 0.2402
+      "avg5y": 0.2431
     },
     "ONDS": {
-      "current": -0.0030148497924992503,
+      "current": -0.002949979239510384,
       "history": [
         {
           "year": 2022,
@@ -1318,11 +1249,11 @@
       "avg5y": -0.0286
     },
     "OSCR": {
-      "current": 0.0804250871380545,
+      "current": 0.08109070231746923,
       "history": [
         {
           "year": 2022,
-          "fcfYield": 0.5224
+          "fcfYield": 0.5223
         },
         {
           "year": 2023,
@@ -1340,7 +1271,7 @@
       "avg5y": 0.2315
     },
     "PEGA": {
-      "current": 0.0942667626500938,
+      "current": 0.09349573093307187,
       "history": [
         {
           "year": 2022,
@@ -1362,7 +1293,7 @@
       "avg5y": 0.0347
     },
     "PEP": {
-      "current": 0.04124181388078346,
+      "current": 0.04162809278310115,
       "history": [
         {
           "year": 2022,
@@ -1384,7 +1315,7 @@
       "avg5y": 0.0349
     },
     "PFE": {
-      "current": 0.08186046403583692,
+      "current": 0.0809828500899984,
       "history": [
         {
           "year": 2022,
@@ -1406,11 +1337,11 @@
       "avg5y": 0.0718
     },
     "PG": {
-      "current": 0.03912048575022509,
+      "current": 0.03901664276380604,
       "history": [
         {
           "year": 2023,
-          "fcfYield": 0.0434
+          "fcfYield": 0.0435
         },
         {
           "year": 2024,
@@ -1418,13 +1349,13 @@
         },
         {
           "year": 2025,
-          "fcfYield": 0.0428
+          "fcfYield": 0.0429
         }
       ],
-      "avg5y": 0.0436
+      "avg5y": 0.0437
     },
     "PM": {
-      "current": 0.03287810983510218,
+      "current": 0.033509155814723676,
       "history": [
         {
           "year": 2022,
@@ -1446,29 +1377,29 @@
       "avg5y": 0.0588
     },
     "PYPL": {
-      "current": 0.0868670329215078,
+      "current": 0.08753104094275627,
       "history": [
         {
           "year": 2022,
-          "fcfYield": 0.0839
+          "fcfYield": 0.0845
         },
         {
           "year": 2023,
-          "fcfYield": 0.0804
+          "fcfYield": 0.081
         },
         {
           "year": 2024,
-          "fcfYield": 0.0927
+          "fcfYield": 0.0934
         },
         {
           "year": 2025,
-          "fcfYield": 0.1099
+          "fcfYield": 0.1107
         }
       ],
-      "avg5y": 0.0917
+      "avg5y": 0.0924
     },
     "QBTS": {
-      "current": -0.009490592881025418,
+      "current": -0.00975852910868826,
       "history": [
         {
           "year": 2022,
@@ -1490,7 +1421,7 @@
       "avg5y": -0.0739
     },
     "RTX": {
-      "current": 0.032868638844454345,
+      "current": 0.03270878703640925,
       "history": [
         {
           "year": 2022,
@@ -1520,7 +1451,7 @@
         },
         {
           "year": 2023,
-          "fcfYield": 0.1633
+          "fcfYield": 0.1642
         },
         {
           "year": 2024,
@@ -1528,35 +1459,18 @@
         },
         {
           "year": 2025,
-          "fcfYield": 0.0505
+          "fcfYield": 0.0507
         }
       ],
-      "avg5y": 0.0595
+      "avg5y": 0.0598
     },
     "SE": {
-      "current": 0.01274203331954521,
-      "history": [
-        {
-          "year": 2022,
-          "fcfYield": -0.0689
-        },
-        {
-          "year": 2023,
-          "fcfYield": 0.0793
-        },
-        {
-          "year": 2024,
-          "fcfYield": 0.0485
-        },
-        {
-          "year": 2025,
-          "fcfYield": 0.0618
-        }
-      ],
-      "avg5y": 0.0302
+      "current": null,
+      "history": [],
+      "avg5y": null
     },
     "SPOT": {
-      "current": 0.015356717633149386,
+      "current": 0.014648774463396618,
       "history": [
         {
           "year": 2022,
@@ -1578,29 +1492,29 @@
       "avg5y": 0.0169
     },
     "TMDX": {
-      "current": 0.015347333028474191,
+      "current": 0.014514718479553768,
       "history": [
         {
           "year": 2022,
-          "fcfYield": -0.0271
+          "fcfYield": -0.027
         },
         {
           "year": 2023,
-          "fcfYield": -0.0704
+          "fcfYield": -0.0702
         },
         {
           "year": 2024,
-          "fcfYield": -0.0395
+          "fcfYield": -0.0394
         },
         {
           "year": 2025,
-          "fcfYield": 0.0317
+          "fcfYield": 0.0316
         }
       ],
-      "avg5y": -0.0263
+      "avg5y": -0.0262
     },
     "TMO": {
-      "current": 0.028398911854366365,
+      "current": 0.028129457439634853,
       "history": [
         {
           "year": 2022,
@@ -1622,7 +1536,7 @@
       "avg5y": 0.0343
     },
     "TSLA": {
-      "current": 0.0037264715400119664,
+      "current": 0.003700568278184001,
       "history": [
         {
           "year": 2022,
@@ -1644,7 +1558,7 @@
       "avg5y": 0.0064
     },
     "TXN": {
-      "current": 0.013569717764339502,
+      "current": 0.013842621094288266,
       "history": [
         {
           "year": 2022,
@@ -1666,7 +1580,7 @@
       "avg5y": 0.0197
     },
     "UNH": {
-      "current": 0.06156485143012334,
+      "current": 0.06131481964553225,
       "history": [
         {
           "year": 2022,
@@ -1688,7 +1602,7 @@
       "avg5y": 0.0523
     },
     "UNP": {
-      "current": 0.027108724383734864,
+      "current": 0.027191282567201127,
       "history": [
         {
           "year": 2022,
@@ -1710,7 +1624,7 @@
       "avg5y": 0.0426
     },
     "V": {
-      "current": 0.03014754928214459,
+      "current": 0.030246002663013135,
       "history": [
         {
           "year": 2022,
@@ -1732,7 +1646,7 @@
       "avg5y": 0.0421
     },
     "WDAY": {
-      "current": 0.07029544634135983,
+      "current": 0.06855895519418029,
       "history": [
         {
           "year": 2023,
@@ -1772,7 +1686,7 @@
       "avg5y": 0.1186
     },
     "WMT": {
-      "current": 0.0077094305868244326,
+      "current": 0.007654001421159665,
       "history": [
         {
           "year": 2023,
@@ -1790,51 +1704,51 @@
       "avg5y": 0.0217
     },
     "XOM": {
-      "current": 0.03258648919999492,
+      "current": 0.03146068103571322,
       "history": [
         {
           "year": 2022,
-          "fcfYield": 0.1435
+          "fcfYield": 0.1447
         },
         {
           "year": 2023,
-          "fcfYield": 0.0877
+          "fcfYield": 0.0884
         },
         {
           "year": 2024,
-          "fcfYield": 0.0736
+          "fcfYield": 0.0742
         },
         {
           "year": 2025,
-          "fcfYield": 0.0477
+          "fcfYield": 0.0481
         }
       ],
-      "avg5y": 0.0881
+      "avg5y": 0.0888
     },
     "ZETA": {
-      "current": 0.037708322470468514,
+      "current": 0.03673299022385808,
       "history": [
         {
           "year": 2022,
-          "fcfYield": 0.0211
+          "fcfYield": 0.0213
         },
         {
           "year": 2023,
-          "fcfYield": 0.0272
+          "fcfYield": 0.0274
         },
         {
           "year": 2024,
-          "fcfYield": 0.0224
+          "fcfYield": 0.0226
         },
         {
           "year": 2025,
-          "fcfYield": 0.0349
+          "fcfYield": 0.0352
         }
       ],
-      "avg5y": 0.0264
+      "avg5y": 0.0266
     },
     "ZVRA": {
-      "current": 0.0704774612080555,
+      "current": 0.0709686018025782,
       "history": [
         {
           "year": 2022,
