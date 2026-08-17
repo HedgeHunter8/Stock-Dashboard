@@ -1,5 +1,5 @@
 {
-  "updated": "2026-08-16 00:31 UTC",
+  "updated": "2026-08-17 00:37 UTC",
   "data": {
     "AAPL": {
       "current": 0.02412693534466309,
@@ -1085,22 +1085,22 @@
       "history": [
         {
           "year": 2022,
-          "fcfYield": 0.0403
+          "fcfYield": 0.0401
         },
         {
           "year": 2023,
-          "fcfYield": 0.0445
+          "fcfYield": 0.0443
         },
         {
           "year": 2024,
-          "fcfYield": 0.0407
+          "fcfYield": 0.0404
         },
         {
           "year": 2025,
-          "fcfYield": 0.0568
+          "fcfYield": 0.0565
         }
       ],
-      "avg5y": 0.0456
+      "avg5y": 0.0453
     },
     "MSFT": {
       "current": 0.004497752139825369,
