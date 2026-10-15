@@ -26,8 +26,8 @@ TICKERS = sorted(set([
     "IONQ", "JD", "ONDS", "OSCR", "PEGA", "PEP", "QBTS", "SE",
     "TSLA", "UNH", "ZETA", "ZVRA", "IBIT",
     # Scott's Portfolio
-    "ABT", "ADBE", "AMGN", "BKNG", "ETHE", "ELF", "EXE", "LULU",
-    "LVS", "NKE", "NOW", "NVO", "PYPL", "SPOT", "TMDX", "WDAY",
+    "ABT", "ADBE", "ASTS", "ISRG", "MELI", "NFLX", "TTWO", "AMGN", "BKNG", "ETHE", "ELF", "EXE", "LULU",
+    "LVS", "MSFT", "NKE", "NOW", "NVO", "ORCL", "PYPL", "SPOT", "TMDX", "UBER", "WDAY",
     # Dividend Growth Portfolio
     "AAPL", "ABBV", "ACN", "AVGO", "BAC", "CB", "CMCSA", "CVX",
     "ELV", "EOG", "HD", "HON", "JNJ", "JPM", "KO", "MA", "MCD",
@@ -44,6 +44,7 @@ SYMBOL_MAP = {
     "ETH/USD": None,
     "IBIT":    None,
     "ETHE":    None,  # Grayscale Ethereum ETF — no FCF
+    "ETH":     None,  # Grayscale Ethereum Mini Trust ETF — no FCF
 }
 
 def get_fcf_data(ticker_sym):
@@ -172,9 +173,8 @@ def main():
         json.dump(output, f, indent=2)
     print(f"\nWritten to fcf_data.json")
 
-    # 2. Inject directly into index.html
-    print("Injecting into index.html...")
-    inject_into_html(output)
+    # index.html injection no longer needed — dashboard fetches fcf_data.json directly
+    print("fcf_data.json is ready — dashboard will fetch it automatically on page load")
 
     success = sum(1 for v in results.values() if v.get("current") is not None)
     print(f"Done. {success}/{total} tickers with current FCF data.")
