@@ -151,6 +151,18 @@ tbody td:not(:first-child) { text-align: right; }
 .rsi-badge.amber { background: rgba(210,153,34,0.15); color: #d29922; }
 .rsi-badge.muted { background: #21262d; color: #484f58; }
 
+/* Claude's Opinion */
+.op-badge { display:inline-block; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:700; letter-spacing:0.3px; }
+.op-badge.ow { background: rgba(63,185,80,0.15); color:#3fb950; }
+.op-badge.uw { background: rgba(248,81,73,0.15); color:#f85149; }
+.op-badge.nv { background:#21262d; color:#8b949e; }
+.op-dots { letter-spacing:2px; font-size:11px; color:#58a6ff; }
+.op-dots .off { color:#30363d; }
+.op-box { background:#161b22; border:1px solid #30363d; border-left:3px solid #58a6ff; border-radius:6px; padding:14px 16px; margin-bottom:16px; font-size:12px; line-height:1.55; color:#c9d1d9; }
+.op-box .op-head { display:flex; gap:14px; align-items:center; flex-wrap:wrap; margin-bottom:8px; font-family:'Courier New',monospace; }
+.op-box .op-lbl { color:#8b949e; font-size:10px; text-transform:uppercase; letter-spacing:1px; }
+.op-box .op-basis { color:#8b949e; font-size:11px; margin-top:8px; }
+.op-box .op-disc { color:#484f58; font-size:10px; margin-top:8px; }
 .row-status { font-size: 10px; color: #484f58; }
 .row-status.loading { color: #d29922; animation: pulse 1s infinite; }
 .row-status.done    { color: #3fb950; }
@@ -750,6 +762,104 @@ async function apiGet(sym, interval, retries) {
   return data;
 }
 
+// ── Claude's Opinion (claude_opinions.json) ──────────────────────────────────
+let opinionData = {};
+let opinionMeta = {};
+
+async function loadOpinions() {
+  try {
+    const base = window.location.href.split('?')[0].replace(/\/+$/, '');
+    const url = base.endsWith('.html')
+      ? base.substring(0, base.lastIndexOf('/')) + '/claude_opinions.json'
+      : base + '/claude_opinions.json';
+    const res = await fetch(url, { cache: 'no-cache', headers: { 'Accept': 'application/json' } });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const json = await res.json();
+    opinionData = json.data || {};
+    opinionMeta = json;
+    console.log('Claude opinions loaded: ' + Object.keys(opinionData).length + ' tickers, as of ' + json.updated);
+  } catch (e) {
+    console.warn('Claude opinions unavailable:', e.message);
+    return;
+  }
+  fillOpinions();
+}
+
+function dotsHtml(conv) {
+  const n = conv === 'High' ? 3 : conv === 'Medium' ? 2 : conv === 'Low' ? 1 : 0;
+  if (!n) return '<span class="val muted">—</span>';
+  return '<span class="op-dots" title="' + conv + ' conviction">' + '●'.repeat(n) + '<span class="off">' + '●'.repeat(3 - n) + '</span></span> <span style="font-size:10px;color:#8b949e">' + conv + '</span>';
+}
+
+function fillOpinions() {
+  PORTFOLIOS.forEach(p => {
+    p.tickers.forEach(({ sym }) => {
+      const o = opinionData[sym];
+      if (!o) return;
+      const safeId = sym.replace(/[^a-zA-Z0-9]/g, '_');
+      const base = p.id + '-' + safeId + '-';
+      const rEl = document.getElementById(base + 'orating');
+      if (rEl) {
+        const cls = o.rating === 'Overweight' ? 'ow' : o.rating === 'Underweight' ? 'uw' : 'nv';
+        const label = o.rating === 'Overweight' ? 'OVERWEIGHT' : o.rating === 'Underweight' ? 'UNDERWEIGHT' : 'NO VIEW';
+        rEl.className = '';
+        rEl.innerHTML = '<span class="op-badge ' + cls + '" title="' + (o.basis || '').replace(/"/g, '&quot;') + '">' + label + (o.marginal ? '*' : '') + '</span>';
+        rEl.parentElement.setAttribute('data-val', o.rating === 'Overweight' ? 1 : o.rating === 'Underweight' ? -1 : 0);
+      }
+      const tEl = document.getElementById(base + 'otarget');
+      if (tEl) {
+        tEl.textContent = o.target != null ? '$' + Number(o.target).toLocaleString(undefined, { maximumFractionDigits: 2 }) : '—';
+        tEl.className = o.target != null ? 'val' : 'val muted';
+      }
+      const cEl = document.getElementById(base + 'oconv');
+      if (cEl) {
+        cEl.className = '';
+        cEl.innerHTML = dotsHtml(o.conviction);
+        cEl.parentElement.setAttribute('data-val', o.conviction === 'High' ? 3 : o.conviction === 'Medium' ? 2 : o.conviction === 'Low' ? 1 : 0);
+      }
+      updateOpinionUpside(p.id, sym, o.refPrice);
+    });
+  });
+}
+
+// Upside vs live price when loaded, otherwise vs the price at the time of the opinion
+function updateOpinionUpside(pid, sym, livePrice) {
+  const o = opinionData[sym];
+  if (!o) return;
+  const safeId = sym.replace(/[^a-zA-Z0-9]/g, '_');
+  const el = document.getElementById(pid + '-' + safeId + '-oupside');
+  if (!el) return;
+  if (o.target == null) { el.textContent = '—'; el.className = 'val muted'; return; }
+  const price = livePrice || o.refPrice;
+  if (!price) return;
+  const up = (o.target / price - 1) * 100;
+  el.textContent = (up >= 0 ? '+' : '') + up.toFixed(1) + '%';
+  el.className = 'val ' + (up >= 8 ? 'green' : up >= 0 ? '' : 'red');
+  el.parentElement.setAttribute('data-val', up);
+}
+
+function opinionBlockHtml(sym) {
+  const o = opinionData[sym];
+  if (!o) return '';
+  const cls = o.rating === 'Overweight' ? 'ow' : o.rating === 'Underweight' ? 'uw' : 'nv';
+  const tgt = o.target != null ? '$' + Number(o.target).toLocaleString(undefined, { maximumFractionDigits: 2 }) : '—';
+  return `
+    <div class="op-box">
+      <div class="op-head">
+        <span class="op-lbl">Claude's Opinion</span>
+        <span class="op-badge ${cls}">${o.rating.toUpperCase()}${o.marginal ? '*' : ''}</span>
+        <span><span class="op-lbl">12M Target</span> <strong style="color:#fff">${tgt}</strong></span>
+        <span><span class="op-lbl">Conviction</span> ${dotsHtml(o.conviction)}</span>
+        <span><span class="op-lbl">Next earnings</span> ${o.nextEarnings || '—'}</span>
+        <span><span class="op-lbl">As of</span> ${opinionMeta.updated || ''} @ $${o.refPrice}</span>
+      </div>
+      <div><strong style="color:#3fb950">Thesis:</strong> ${o.thesis}</div>
+      <div style="margin-top:6px"><strong style="color:#f85149">Key risk:</strong> ${o.risk}</div>
+      <div class="op-basis">Basis: ${o.basis}${o.marginal ? ' &nbsp;·&nbsp; * marginal: within 2 pts of the 8% return hurdle' : ''}</div>
+      <div class="op-disc">AI-generated opinion from public data on the "as of" date. Not investment advice; refresh after earnings.</div>
+    </div>`;
+}
+
 // ── Load FCF data from fcf_data.json (persists independently of index.html) ──
 async function loadFCFData() {
   try {
@@ -1174,7 +1284,7 @@ function toggleDrawer(pid, sym, name, rowEl) {
   // No data yet
   if (!tickerData[sym]) {
     const inner = document.getElementById('drawerinner-' + pid + '-' + safeId);
-    if (inner) inner.innerHTML = '<div style="padding:20px;color:#484f58;font-size:12px;">⏳ Data not loaded yet — click LOAD DATA first</div>';
+    if (inner) inner.innerHTML = opinionBlockHtml(sym) + '<div style="padding:20px;color:#484f58;font-size:12px;">⏳ Chart data not loaded yet — click LOAD DATA first</div>';
     drawerEl.classList.add('open');
     rowEl.classList.add('expanded');
     return;
@@ -1226,6 +1336,7 @@ function toggleDrawer(pid, sym, name, rowEl) {
       <div class="drawer-title">${sym} <span style="font-size:12px;color:#8b949e;font-weight:400;letter-spacing:0">${name}</span></div>
       <button class="drawer-close" onclick="closeDrawer('${pid}','${safeId}','${drawerId}')">✕ Close</button>
     </div>
+    ${opinionBlockHtml(sym)}
     <div class="charts-grid">
       <div class="chart-panel">
         <div class="chart-panel-title">Price + Moving Averages (Last 100 Days)</div>
@@ -1397,6 +1508,10 @@ function buildUI() {
               <th class="sortable" data-col="atr" data-pid="${p.id}" onclick="sortTable(this)">ATR (14)<span class="sort-icon"></span></th>
               <th class="sortable" data-col="fcfy" data-pid="${p.id}" onclick="sortTable(this)">FCF Yield<span class="sort-icon"></span></th>
               <th>Status</th>
+              <th class="sortable" data-col="orating" data-pid="${p.id}" onclick="sortTable(this)" title="Claude's opinion — click row for thesis">Claude's Rating<span class="sort-icon"></span></th>
+              <th>12M Target</th>
+              <th class="sortable" data-col="oupside" data-pid="${p.id}" onclick="sortTable(this)">Upside<span class="sort-icon"></span></th>
+              <th class="sortable" data-col="oconv" data-pid="${p.id}" onclick="sortTable(this)">Conviction<span class="sort-icon"></span></th>
             </tr>
           </thead>
           <tbody id="tbody-${p.id}">
@@ -1425,14 +1540,18 @@ function buildUI() {
         <td data-val=""><span class="rsi-badge muted" id="${p.id}-${safeId}-rsiw">—</span></td>
         <td data-val=""><span class="val muted" id="${p.id}-${safeId}-atr">—</span></td>
         <td data-val=""><span class="val muted" id="${p.id}-${safeId}-fcfy">—</span></td>
-        <td><span class="row-status" id="${p.id}-${safeId}-st">pending</span></td>`;
+        <td><span class="row-status" id="${p.id}-${safeId}-st">pending</span></td>
+        <td data-val=""><span class="val muted" id="${p.id}-${safeId}-orating">—</span></td>
+        <td data-val=""><span class="val muted" id="${p.id}-${safeId}-otarget">—</span></td>
+        <td data-val=""><span class="val muted" id="${p.id}-${safeId}-oupside">—</span></td>
+        <td data-val=""><span class="val muted" id="${p.id}-${safeId}-oconv">—</span></td>`;
       tbody.appendChild(tr);
       // Drawer row (hidden by default)
       const drawerTr = document.createElement('tr');
       drawerTr.id = 'drawer-' + p.id + '-' + safeId;
       drawerTr.className = 'chart-drawer';
       const drawerTd = document.createElement('td');
-      drawerTd.colSpan = 10;
+      drawerTd.colSpan = 16;
       drawerTd.innerHTML = '<div class="drawer-inner" id="drawerinner-' + p.id + '-' + safeId + '"></div>';
       drawerTr.appendChild(drawerTd);
       tbody.appendChild(drawerTr);
@@ -1547,6 +1666,8 @@ function renderRow(portfolioId, sym, dailyData, weeklyData) {
     }
   }
 
+  updateOpinionUpside(pid, sym, price);
+
   const st = document.getElementById(pid + '-' + safeId + '-st');
   if (st) { st.textContent = '✓ done'; st.className = 'row-status done'; }
 }
@@ -1659,6 +1780,7 @@ async function fetchCurrentPortfolio() {
 // ── Init ─────────────────────────────────────────────────────────────────────
 buildUI();
 loadFCFData();
+loadOpinions();
 </script>
 </body>
 </html>
