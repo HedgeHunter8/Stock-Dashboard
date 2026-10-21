@@ -1,0 +1,1837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portfolio Dashboard</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #0d1117;
+  color: #c9d1d9;
+  font-family: 'Courier New', Courier, monospace;
+  min-height: 100vh;
+  padding: 14px 12px;
+}
+#app { max-width: none; width: 100%; margin: 0 auto; }
+
+/* ── Top bar ── */
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #30363d;
+  padding-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.title-block .main-title { font-size: 20px; font-weight: 700; color: #e6edf3; letter-spacing: 2px; }
+.title-block .sub-title  { font-size: 11px; color: #8b949e; margin-top: 3px; }
+
+/* ── Portfolio switcher ── */
+.portfolio-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+.ptab {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  color: #8b949e;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 9px 18px;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  transition: all 0.15s;
+}
+.ptab:hover  { border-color: #58a6ff; color: #c9d1d9; }
+.ptab.active { background: #1c2a3a; border-color: #388bfd; color: #58a6ff; }
+
+/* ── Load button ── */
+#fetch-btn {
+  background: #1f6feb;
+  border: 2px solid #388bfd;
+  border-radius: 8px;
+  color: #fff;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 10px 26px;
+  cursor: pointer;
+  letter-spacing: 1px;
+  transition: background 0.15s, box-shadow 0.15s;
+  box-shadow: 0 0 10px rgba(56,139,253,0.4);
+  white-space: nowrap;
+}
+#fetch-btn:hover:not(:disabled) { background: #388bfd; box-shadow: 0 0 18px rgba(56,139,253,0.7); }
+#fetch-btn:disabled { background: #21262d; border-color: #30363d; color: #484f58; cursor: not-allowed; box-shadow: none; }
+
+/* ── Status bar ── */
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  color: #8b949e;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 9px 14px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.dot { width: 8px; height: 8px; border-radius: 50%; background: #3fb950; flex-shrink: 0; }
+.dot.loading  { background: #d29922; animation: pulse 1s infinite; }
+.dot.error    { background: #f85149; }
+.dot.cooldown { background: #58a6ff; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.25} }
+.progress-wrap { flex: 1; min-width: 80px; background: #21262d; border-radius: 4px; height: 5px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 4px; background: #388bfd; transition: width 0.3s; width: 0%; }
+
+/* ── Portfolio panel ── */
+.portfolio-panel { display: none; }
+.portfolio-panel.active { display: block; }
+.portfolio-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #e6edf3;
+  letter-spacing: 1px;
+  margin-bottom: 14px;
+}
+
+/* ── Table ── */
+/* Scroll container: scrolls both ways inside the page, header stays visible,
+   Symbol column stays pinned, and you can click-and-drag to pan like a touch screen */
+.stock-table-wrap {
+  overflow: auto;
+  max-height: calc(100vh - 210px);
+  cursor: grab;
+  overscroll-behavior-x: contain;
+}
+.stock-table-wrap.dragging { cursor: grabbing; user-select: none; }
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12px;
+}
+thead th {
+  position: sticky; top: 0; z-index: 3;
+  background: #161b22;
+  color: #8b949e;
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 9px 7px;
+  text-align: left;
+  border-bottom: 1px solid #30363d;
+  white-space: nowrap;
+}
+thead th:not(:first-child) { text-align: right; }
+.portfolio-panel thead th:first-child, tr.data-row td:first-child { position: sticky; left: 0; }
+.portfolio-panel thead th:first-child { z-index: 4; }
+tr.data-row td:first-child { z-index: 2; background: #0d1117; }
+tr.data-row:hover td:first-child { background: #161b22; }
+tr.data-row.expanded td:first-child { background: #161b22; }
+tbody tr {
+  transition: background 0.1s;
+}
+tbody tr.data-row td { border-bottom: 1px solid #1e242c; }
+tbody tr:hover { background: #161b22; }
+tbody td {
+  padding: 8px 7px;
+  white-space: nowrap;
+}
+tbody td:not(:first-child) { text-align: right; }
+
+.sym-cell { font-weight: 700; color: #e6edf3; letter-spacing: 0.5px; font-size: 12.5px; }
+.name-cell { color: #8b949e; font-size: 11px; padding-left: 4px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 1450px) { .col-name, td.name-cell { display: none; } }
+
+.val { font-size: 12px; color: #e6edf3; }
+.val.green { color: #3fb950; }
+.val.red   { color: #f85149; }
+.val.amber { color: #d29922; }
+.val.muted { color: #484f58; }
+
+.rsi-badge {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.rsi-badge.green { background: rgba(63,185,80,0.15); color: #3fb950; }
+.rsi-badge.red   { background: rgba(248,81,73,0.15);  color: #f85149; }
+.rsi-badge.amber { background: rgba(210,153,34,0.15); color: #d29922; }
+.rsi-badge.muted { background: #21262d; color: #484f58; }
+
+/* Claude's Opinion */
+.op-badge { display:inline-block; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:700; letter-spacing:0.2px; }
+.op-badge.ow { background: rgba(63,185,80,0.15); color:#3fb950; }
+.op-badge.uw { background: rgba(248,81,73,0.15); color:#f85149; }
+.op-badge.nv { background:#21262d; color:#8b949e; }
+.op-dots { letter-spacing:2px; font-size:11px; color:#58a6ff; }
+.op-dots .off { color:#30363d; }
+.op-box { background:#161b22; border:1px solid #30363d; border-left:3px solid #58a6ff; border-radius:6px; padding:14px 16px; margin-bottom:16px; font-size:12px; line-height:1.55; color:#c9d1d9; }
+.op-box .op-head { display:flex; gap:14px; align-items:center; flex-wrap:wrap; margin-bottom:8px; font-family:'Courier New',monospace; }
+.op-box .op-lbl { color:#8b949e; font-size:10px; text-transform:uppercase; letter-spacing:1px; }
+.op-box .op-basis { color:#8b949e; font-size:11px; margin-top:8px; }
+.op-box .op-disc { color:#484f58; font-size:10px; margin-top:8px; }
+/* Status is now just a tiny dot next to the symbol: amber = loading, red = error (hover for the message) */
+.row-status { font-size: 0; margin-left: 5px; }
+.row-status.loading::before { content: '●'; font-size: 9px; color: #d29922; animation: pulse 1s infinite; }
+.row-status.error::before   { content: '●'; font-size: 9px; color: #f85149; }
+
+/* ── Screener tab ── */
+.screener-panel { display: none; }
+.screener-panel.active { display: block; }
+.screener-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-end;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+.filter-group { display: flex; flex-direction: column; gap: 4px; min-width: 140px; }
+.filter-label { font-size: 10px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.8px; }
+.filter-select, .filter-input {
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  color: #c9d1d9;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+.filter-select:focus, .filter-input:focus { outline: none; border-color: #388bfd; }
+.screener-run-btn {
+  background: #1f6feb;
+  border: 2px solid #388bfd;
+  border-radius: 8px;
+  color: #fff;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 20px;
+  cursor: pointer;
+  transition: background 0.15s;
+  box-shadow: 0 0 8px rgba(56,139,253,0.4);
+  align-self: flex-end;
+}
+.screener-run-btn:hover { background: #388bfd; }
+.screener-run-btn:disabled { background: #21262d; border-color: #30363d; color: #484f58; cursor: not-allowed; box-shadow: none; }
+.screener-results-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.screener-count { font-size: 12px; color: #8b949e; }
+.trend-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+.trend-badge.improving     { background: rgba(63,185,80,0.15);  color: #3fb950; }
+.trend-badge.mixed         { background: rgba(210,153,34,0.15); color: #d29922; }
+.trend-badge.deteriorating { background: rgba(248,81,73,0.15);  color: #f85149; }
+.trend-badge.insufficient  { background: #21262d; color: #484f58; }
+.proj-badge {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.proj-badge.likely_up   { background: rgba(63,185,80,0.15);  color: #3fb950; }
+.proj-badge.likely_down { background: rgba(248,81,73,0.15);  color: #f85149; }
+.proj-badge.unclear     { background: #21262d; color: #484f58; }
+.screener-status {
+  font-size: 12px; color: #8b949e;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* sortable headers */
+th.sortable { cursor: pointer; user-select: none; }
+th.sortable:hover { color: #c9d1d9; background: #1c2230; }
+th.sortable .sort-icon { margin-left: 5px; opacity: 0.35; font-size: 9px; }
+th.sortable.asc  .sort-icon::after { content: '▲'; opacity: 1; color: #58a6ff; }
+th.sortable.desc .sort-icon::after { content: '▼'; opacity: 1; color: #58a6ff; }
+th.sortable:not(.asc):not(.desc) .sort-icon::after { content: '⇅'; }
+
+/* summary strip */
+.summary-strip {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+  font-size: 11px;
+  color: #8b949e;
+}
+.summary-strip span { display: flex; align-items: center; gap: 5px; }
+.sdot { width: 7px; height: 7px; border-radius: 50%; }
+
+/* ── Chart drawer ── */
+.chart-drawer { background: #0d1117; }
+.chart-drawer td { padding: 0; }
+.chart-drawer .drawer-inner { display: none; }
+.chart-drawer.open .drawer-inner { display: block; padding: 20px; }
+.chart-drawer.open { border-top: 1px solid #388bfd; border-bottom: 1px solid #30363d; }
+.drawer-header {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;
+}
+.drawer-title { font-size: 15px; font-weight: 700; color: #e6edf3; letter-spacing: 2px; }
+.drawer-close {
+  background: #21262d; border: 1px solid #30363d; border-radius: 6px;
+  color: #8b949e; font-family: 'Courier New', monospace; font-size: 12px;
+  padding: 5px 14px; cursor: pointer; transition: all 0.15s;
+}
+.drawer-close:hover { border-color: #f85149; color: #f85149; }
+.charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto auto;
+  gap: 14px;
+}
+.charts-grid .chart-panel.full-width {
+  grid-column: 1 / -1;
+}
+@media (max-width: 800px) { .charts-grid { grid-template-columns: 1fr; } }
+.chart-panel {
+  background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 14px;
+}
+.chart-panel-title { font-size: 10px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
+.chart-legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 10px; color: #8b949e; margin-bottom: 8px; }
+.chart-legend span { display: flex; align-items: center; gap: 4px; }
+.cleg { width: 18px; height: 2px; border-radius: 1px; }
+.chart-hint { font-size: 10px; color: #484f58; margin-top: 12px; }
+tbody tr.data-row { cursor: pointer; }
+tbody tr.data-row:hover { background: #1c2230; }
+tbody tr.data-row.expanded { background: #161b22; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div class="top-bar">
+    <div class="title-block">
+      <div class="main-title">▍ PORTFOLIO DASHBOARD</div>
+      <div class="sub-title">Powered by Twelve Data · 8 credits/min · 61s cooldown auto-managed</div>
+    </div>
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+      <div class="portfolio-tabs" id="ptabs"></div>
+      <button id="fetch-btn" onclick="fetchCurrentPortfolio()">▶ LOAD DATA</button>
+    </div>
+  </div>
+
+  <div class="status-bar">
+    <div class="dot" id="sdot"></div>
+    <span id="stext">Select a portfolio and click LOAD DATA</span>
+    <div class="progress-wrap"><div class="progress-fill" id="progress"></div></div>
+    <span id="scredits" style="white-space:nowrap;">Credits: 0/8</span>
+    <span id="seta" style="white-space:nowrap;margin-left:4px;"></span>
+  </div>
+
+  <div id="portfolio-panels"></div>
+  <div class="screener-panel" id="panel-screener">
+    <div class="screener-controls">
+      <div class="filter-group">
+        <span class="filter-label">FCF Trend</span>
+        <select class="filter-select" id="f-trend">
+          <option value="all">All trends</option>
+          <option value="improving" selected>Improving only</option>
+          <option value="improving,mixed">Improving + Mixed</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">2026 Projection</span>
+        <select class="filter-select" id="f-proj">
+          <option value="all">Any</option>
+          <option value="likely_up" selected>Likely Up only</option>
+          <option value="likely_up,unclear">Likely Up + Unclear</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Min FCF Yield %</span>
+        <input class="filter-input" id="f-minyield" type="number" value="2" min="0" max="30" step="0.5">
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">FCF/Net Income</span>
+        <select class="filter-select" id="f-fcfni">
+          <option value="all" selected>Any</option>
+          <option value="gt1">&gt; 1 (quality)</option>
+          <option value="any_positive">Positive</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">FCF/S Growth (3yr)</span>
+        <select class="filter-select" id="f-fcfgrowth">
+          <option value="all" selected>Any</option>
+          <option value="positive">Positive</option>
+          <option value="positive_stable">Positive &amp; Stable</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">FCF Yield vs Treasury</span>
+        <select class="filter-select" id="f-treasury">
+          <option value="all" selected>Any</option>
+          <option value="gt2pct">&gt; Treasury + 2%</option>
+          <option value="gt0">Above Treasury</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">P/FCF vs 5yr Avg</span>
+        <select class="filter-select" id="f-pfcf">
+          <option value="all">Any</option>
+          <option value="below">Below avg (cheap)</option>
+          <option value="sell_zone">20-30% above (sell zone)</option>
+          <option value="not_extended">Not extended (&lt;20% above)</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Green Flag FCF/S&gt;EPS</span>
+        <select class="filter-select" id="f-greenflag">
+          <option value="all" selected>Any</option>
+          <option value="true">✓ Green flag only</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">TTM vs 5yr Avg</span>
+        <select class="filter-select" id="f-vsavg">
+          <option value="all">Any</option>
+          <option value="above">Above 5yr avg only</option>
+          <option value="below">Below 5yr avg only</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Sector</span>
+        <select class="filter-select" id="f-sector">
+          <option value="all">All sectors</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Sort Results By</span>
+        <select class="filter-select" id="f-sortby">
+          <option value="shareholderYield" selected>Shareholder Yield ↓</option>
+          <option value="current">FCF Yield TTM ↓</option>
+          <option value="fcfVsTreasury">FCF vs Treasury ↓</option>
+          <option value="fcfPSGrowth3yr">FCF/S Growth ↓</option>
+          <option value="fcfPSStability">FCF/S Stability ↓</option>
+          <option value="pFCFVsAvg">P/FCF vs Avg ↑</option>
+        </select>
+      </div>
+      <button class="screener-run-btn" id="screener-run-btn" onclick="runScreener()">▶ SCREEN</button>
+    </div>
+    <div class="screener-status" id="screener-status">
+      <div class="dot" id="screener-dot"></div>
+      <span id="screener-status-text">Click SCREEN to filter results · Data loads from screener_data.json on first use</span>
+    </div>
+    <div class="screener-results-header">
+      <div class="screener-count" id="screener-count"></div>
+      <div style="font-size:11px;color:#484f58;" id="screener-updated"></div>
+    </div>
+    <div class="stock-table-wrap">
+      <table id="screener-table">
+        <thead>
+          <tr>
+            <th>Symbol</th>
+            <th>Company</th>
+            <th>Sector</th>
+            <th>FCF Yield</th>
+            <th>5yr Avg</th>
+            <th>vs 5yr Avg</th>
+            <th>Shrhldr Yield</th>
+            <th>FCF/NI</th>
+            <th>FCF/S Gr 3yr</th>
+            <th>Stability</th>
+            <th>vs Treasury</th>
+            <th>P/FCF</th>
+            <th>P/FCF 5yr Avg</th>
+            <th>P/FCF vs Avg</th>
+            <th>🟢 Flag</th>
+            <th>Trend</th>
+            <th>2026 Est.</th>
+            <th>Mkt Cap</th>
+          </tr>
+        </thead>
+        <tbody id="screener-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const API_KEY = 'b6397bcea4254ba6bd695387a4e002be';
+
+// ── Portfolio definitions ────────────────────────────────────────────────────
+const PORTFOLIOS = [
+  {
+    id: 'hunters',
+    name: "Hunter's Portfolio",
+    tickers: [
+      { sym: 'AMZN',   name: 'Amazon.com Inc.' },
+      { sym: 'ASML',   name: 'ASML Holding N.V.' },
+      { sym: 'BIDU',   name: 'Baidu Inc.' },
+      { sym: 'BYDDY',  name: 'BYD Co. Ltd. ADR' },
+      { sym: 'CRM',    name: 'Salesforce Inc.' },
+      { sym: 'GOOGL',  name: 'Alphabet Inc.' },
+      { sym: 'GRRR',   name: 'Gorilla Technology Group' },
+      { sym: 'HIMS',   name: 'Hims & Hers Health Inc.' },
+      { sym: 'IONQ',   name: 'IonQ Inc.' },
+      { sym: 'JD',     name: 'JD.com Inc.' },
+      { sym: 'ONDS',   name: 'Ondas Holdings Inc.' },
+      { sym: 'OSCR',   name: 'Oscar Health Inc.' },
+      { sym: 'PEGA',   name: 'Pegasystems Inc.' },
+      { sym: 'PEP',    name: 'PepsiCo Inc.' },
+      { sym: 'QBTS',   name: 'D-Wave Quantum Inc.' },
+      { sym: 'SE',     name: 'Sea Limited' },
+      { sym: 'TSLA',   name: 'Tesla Inc.' },
+      { sym: 'UNH',    name: 'UnitedHealth Group Inc.' },
+      { sym: 'ZETA',   name: 'Zeta Global Holdings Corp.' },
+      { sym: 'ZVRA',   name: 'Zevra Therapeutics Inc.' },
+      { sym: 'ETH/USD',name: 'Ethereum (ETH/USD)' },
+      { sym: 'BABA',   name: 'Alibaba Group Holding Ltd.' },
+      { sym: 'IBIT',   name: 'iShares Bitcoin Trust ETF' },
+    ]
+  },
+  {
+    id: 'dividendgrowth',
+    name: 'Dividend Growth Portfolio',
+    tickers: [
+      { sym: 'AAPL',  name: 'Apple Inc.' },
+      { sym: 'ABBV',  name: 'AbbVie Inc.' },
+      { sym: 'ACN',   name: 'Accenture plc' },
+      { sym: 'AVGO',  name: 'Broadcom Inc.' },
+      { sym: 'BAC',   name: 'Bank of America Corp.' },
+      { sym: 'CB',    name: 'Chubb Limited' },
+      { sym: 'CMCSA', name: 'Comcast Corp.' },
+      { sym: 'CVX',   name: 'Chevron Corp.' },
+      { sym: 'ELV',   name: 'Elevance Health Inc.' },
+      { sym: 'EOG',   name: 'EOG Resources Inc.' },
+      { sym: 'HD',    name: 'The Home Depot Inc.' },
+      { sym: 'HON',   name: 'Honeywell International Inc.' },
+      { sym: 'JNJ',   name: 'Johnson & Johnson' },
+      { sym: 'JPM',   name: 'JPMorgan Chase & Co.' },
+      { sym: 'KO',    name: 'The Coca-Cola Co.' },
+      { sym: 'MA',    name: 'Mastercard Inc.' },
+      { sym: 'MCD',   name: "McDonald's Corp." },
+      { sym: 'MDT',   name: 'Medtronic plc' },
+      { sym: 'MRK',   name: 'Merck & Co. Inc.' },
+      { sym: 'MRSH',  name: 'Marsh & McLennan Companies' },
+      { sym: 'MSFT',  name: 'Microsoft Corp.' },
+      { sym: 'NEE',   name: 'NextEra Energy Inc.' },
+      { sym: 'PEP',   name: 'PepsiCo Inc.' },
+      { sym: 'PFE',   name: 'Pfizer Inc.' },
+      { sym: 'PG',    name: 'Procter & Gamble Co.' },
+      { sym: 'PM',    name: 'Philip Morris International' },
+      { sym: 'SCHW',  name: 'Charles Schwab Corp.' },
+      { sym: 'TXN',   name: 'Texas Instruments Inc.' },
+      { sym: 'UNH',   name: 'UnitedHealth Group Inc.' },
+      { sym: 'UNP',   name: 'Union Pacific Corp.' },
+      { sym: 'V',     name: 'Visa Inc.' },
+      { sym: 'WMT',   name: 'Walmart Inc.' },
+      { sym: 'XOM',   name: 'Exxon Mobil Corp.' },
+    ]
+  },
+  {
+    id: 'scotts',
+    name: "Scott's Portfolio",
+    tickers: [
+      { sym: 'ABT', name: "Abbott Laboratories" },
+      { sym: 'ADBE', name: "Adobe Inc." },
+      { sym: 'ASTS', name: "AST SpaceMobile Inc." },
+      { sym: 'BABA', name: "Alibaba Group Holding Ltd." },
+      { sym: 'BKNG', name: "Booking Holdings Inc." },
+      { sym: 'CRM', name: "Salesforce Inc." },
+      { sym: 'EXE', name: "Expand Energy Corp." },
+      { sym: 'ISRG', name: "Intuitive Surgical Inc." },
+      { sym: 'LULU', name: "Lululemon Athletica Inc." },
+      { sym: 'LVS', name: "Las Vegas Sands Corp." },
+      { sym: 'MELI', name: "MercadoLibre Inc." },
+      { sym: 'META', name: "Meta Platforms Inc." },
+      { sym: 'MSFT', name: "Microsoft Corp." },
+      { sym: 'NFLX', name: "Netflix Inc." },
+      { sym: 'NKE', name: "Nike Inc." },
+      { sym: 'NOW', name: "ServiceNow Inc." },
+      { sym: 'NVO', name: "Novo Nordisk A/S ADR" },
+      { sym: 'ORCL', name: "Oracle Corp." },
+      { sym: 'OSCR', name: "Oscar Health Inc." },
+      { sym: 'PEP', name: "PepsiCo Inc." },
+      { sym: 'PFE', name: "Pfizer Inc." },
+      { sym: 'SE', name: "Sea Limited" },
+      { sym: 'SPOT', name: "Spotify Technology S.A." },
+      { sym: 'TMDX', name: "TransMedics Group Inc." },
+      { sym: 'TTWO', name: "Take-Two Interactive Software" },
+      { sym: 'UBER', name: "Uber Technologies Inc." },
+      { sym: 'UNH', name: "UnitedHealth Group Inc." },
+      { sym: 'WDAY', name: "Workday Inc." },
+      { sym: 'WMT', name: "Walmart Inc." },
+      { sym: 'ZETA', name: "Zeta Global Holdings Corp." },
+      { sym: 'ETH', name: "Grayscale Ethereum Mini Trust ETF" },
+      { sym: 'IBIT', name: "iShares Bitcoin Trust ETF" },
+    ]
+  },
+  {
+    id: 'largevalue',
+    name: 'Large Value Portfolio',
+    tickers: [
+      { sym: 'AIG',   name: 'American International Group' },
+      { sym: 'AMZN',  name: 'Amazon.com Inc.' },
+      { sym: 'AXP',   name: 'American Express Co.' },
+      { sym: 'BAC',   name: 'Bank of America Corp.' },
+      { sym: 'BRK.B', name: 'Berkshire Hathaway Inc. B' },
+      { sym: 'C',     name: 'Citigroup Inc.' },
+      { sym: 'CI',    name: 'The Cigna Group' },
+      { sym: 'CMCSA', name: 'Comcast Corp.' },
+      { sym: 'COF',   name: 'Capital One Financial Corp.' },
+      { sym: 'COP',   name: 'ConocoPhillips' },
+      { sym: 'CVS',   name: 'CVS Health Corp.' },
+      { sym: 'CVX',   name: 'Chevron Corp.' },
+      { sym: 'DE',    name: 'Deere & Company' },
+      { sym: 'DIS',   name: 'The Walt Disney Co.' },
+      { sym: 'ELV',   name: 'Elevance Health Inc.' },
+      { sym: 'GM',    name: 'General Motors Co.' },
+      { sym: 'GOOGL', name: 'Alphabet Inc.' },
+      { sym: 'INTC',  name: 'Intel Corp.' },
+      { sym: 'JNJ',   name: 'Johnson & Johnson' },
+      { sym: 'JPM',   name: 'JPMorgan Chase & Co.' },
+      { sym: 'LOW',   name: "Lowe's Companies Inc." },
+      { sym: 'META',  name: 'Meta Platforms Inc.' },
+      { sym: 'MRK',   name: 'Merck & Co. Inc.' },
+      { sym: 'MRSH',  name: 'Marsh & McLennan Companies' },
+      { sym: 'MSFT',  name: 'Microsoft Corp.' },
+      { sym: 'NOC',   name: 'Northrop Grumman Corp.' },
+      { sym: 'RTX',   name: 'RTX Corp.' },
+      { sym: 'SCHW',  name: 'Charles Schwab Corp.' },
+      { sym: 'TMO',   name: 'Thermo Fisher Scientific Inc.' },
+      { sym: 'TXN',   name: 'Texas Instruments Inc.' },
+      { sym: 'UNH',   name: 'UnitedHealth Group Inc.' },
+      { sym: 'WFC',   name: 'Wells Fargo & Co.' },
+      { sym: 'XOM',   name: 'Exxon Mobil Corp.' },
+    ]
+  }
+];
+
+// ── State ────────────────────────────────────────────────────────────────────
+// Sliding window: timestamps (ms) of every API call made this session.
+// Before each call, prune entries older than 61s. If window is full, wait.
+const callTimestamps = [];
+const WINDOW_MS = 61000;
+const MAX_PER_WINDOW = 8;
+
+let activePortfolioId = PORTFOLIOS[0].id;
+let fetchAbort = false;
+let fcfData = {}; // loaded from fcf_data.json on page load
+const tickerData = {}; // stores daily closes + volume keyed by sym
+const openDrawer = { sym: null, charts: [] }; // track open drawer
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function setStatus(msg, state) {
+  document.getElementById('stext').textContent = msg;
+  const d = document.getElementById('sdot');
+  d.className = 'dot' + (state ? ' ' + state : '');
+}
+function updCredits() {
+  const now = Date.now();
+  const recent = callTimestamps.filter(t => now - t < WINDOW_MS).length;
+  document.getElementById('scredits').textContent = 'Credits: ' + recent + '/8';
+}
+function setProgress(n, total) {
+  document.getElementById('progress').style.width = (total > 0 ? Math.round(n / total * 100) : 0) + '%';
+}
+function setETA(msg) {
+  document.getElementById('seta').textContent = msg;
+}
+
+function calcSMA(arr, n) {
+  if (arr.length < n) return null;
+  return arr.slice(-n).reduce((a, b) => a + b, 0) / n;
+}
+function calcRSI(closes, period) {
+  period = period || 14;
+  if (closes.length < period + 1) return null;
+  let gains = 0, losses = 0;
+  for (let i = 1; i <= period; i++) {
+    const d = closes[i] - closes[i - 1];
+    if (d >= 0) gains += d; else losses -= d;
+  }
+  let ag = gains / period, al = losses / period;
+  for (let i = period + 1; i < closes.length; i++) {
+    const d = closes[i] - closes[i - 1];
+    ag = (ag * (period - 1) + Math.max(d, 0)) / period;
+    al = (al * (period - 1) + Math.max(-d, 0)) / period;
+  }
+  if (al === 0) return 100;
+  return 100 - (100 / (1 + ag / al));
+}
+function rsiClass(v) { return v >= 70 ? 'red' : v <= 30 ? 'green' : 'amber'; }
+
+function calcATR(dailyValues, period) {
+  // dailyValues is the raw reversed array with .high .low .close
+  period = period || 14;
+  if (dailyValues.length < period + 1) return null;
+  const trs = [];
+  for (let i = 1; i < dailyValues.length; i++) {
+    const high  = parseFloat(dailyValues[i].high);
+    const low   = parseFloat(dailyValues[i].low);
+    const prevC = parseFloat(dailyValues[i-1].close);
+    const tr = Math.max(high - low, Math.abs(high - prevC), Math.abs(low - prevC));
+    trs.push(tr);
+  }
+  // Wilder smoothing: seed with SMA of first `period` TRs
+  let atr = trs.slice(0, period).reduce((a,b) => a+b, 0) / period;
+  for (let i = period; i < trs.length; i++) {
+    atr = (atr * (period - 1) + trs[i]) / period;
+  }
+  return atr;
+}
+
+function fmtPrice(p) {
+  if (p >= 1000) return '$' + p.toFixed(2);
+  if (p >= 1)    return '$' + p.toFixed(2);
+  return '$' + p.toFixed(4);
+}
+
+// ── Rate-limited API call ────────────────────────────────────────────────────
+// Uses a sliding 61-second window. Waits automatically if 8 calls have been
+// made in the last 61s, regardless of session resets or multiple Load clicks.
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function waitForSlot() {
+  // Show countdown while waiting for the oldest call to age out of the window
+  while (true) {
+    if (fetchAbort) throw new Error('ABORTED');
+    const now = Date.now();
+    // Prune timestamps outside the window
+    while (callTimestamps.length && now - callTimestamps[0] >= WINDOW_MS) {
+      callTimestamps.shift();
+    }
+    if (callTimestamps.length < MAX_PER_WINDOW) return; // slot available
+    // Calculate wait: how long until oldest call exits the window
+    const waitMs = WINDOW_MS - (now - callTimestamps[0]) + 100; // +100ms buffer
+    const waitSecs = Math.ceil(waitMs / 1000);
+    setStatus('Rate limit — waiting ' + waitSecs + 's for next available slot...', 'cooldown');
+    updCredits();
+    await sleep(Math.min(waitMs, 1000)); // check every second
+  }
+}
+
+async function apiGet(sym, interval, retries) {
+  retries = retries || 0;
+  await waitForSlot();
+  if (fetchAbort) throw new Error('ABORTED');
+
+  const url = 'https://api.twelvedata.com/time_series'
+    + '?symbol=' + encodeURIComponent(sym)
+    + '&interval=' + interval
+    + '&outputsize=' + (interval === '1day' ? 250 : 200)
+    + '&apikey=' + API_KEY;
+
+  const res = await fetch(url);
+
+  // 429 = server-side rate limit hit — wait 61s and retry (up to 3 times)
+  if (res.status === 429) {
+    if (retries >= 3) throw new Error('429 after 3 retries for ' + sym);
+    let secs = 61;
+    const countdown = async () => {
+      while (secs > 0) {
+        if (fetchAbort) throw new Error('ABORTED');
+        setStatus('429 rate limit from server — waiting ' + secs + 's before retry...', 'cooldown');
+        await sleep(1000);
+        secs--;
+      }
+    };
+    await countdown();
+    return apiGet(sym, interval, retries + 1);
+  }
+
+  if (!res.ok) throw new Error('HTTP ' + res.status + ' for ' + sym);
+  const data = await res.json();
+  if (data.status === 'error') throw new Error(data.message);
+
+  // Record this successful call in the sliding window
+  callTimestamps.push(Date.now());
+  updCredits();
+  return data;
+}
+
+// ── Claude's Opinion (claude_opinions.json) ──────────────────────────────────
+let opinionData = {};
+let opinionMeta = {};
+
+async function loadOpinions() {
+  try {
+    const base = window.location.href.split('?')[0].replace(/\/+$/, '');
+    const url = base.endsWith('.html')
+      ? base.substring(0, base.lastIndexOf('/')) + '/claude_opinions.json'
+      : base + '/claude_opinions.json';
+    const res = await fetch(url, { cache: 'no-cache', headers: { 'Accept': 'application/json' } });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const json = await res.json();
+    opinionData = json.data || {};
+    opinionMeta = json;
+    console.log('Claude opinions loaded: ' + Object.keys(opinionData).length + ' tickers, as of ' + json.updated);
+  } catch (e) {
+    console.warn('Claude opinions unavailable:', e.message);
+    return;
+  }
+  fillOpinions();
+}
+
+function dotsHtml(conv) {
+  const n = conv === 'High' ? 3 : conv === 'Medium' ? 2 : conv === 'Low' ? 1 : 0;
+  if (!n) return '<span class="val muted">—</span>';
+  return '<span class="op-dots" title="' + conv + ' conviction">' + '●'.repeat(n) + '<span class="off">' + '●'.repeat(3 - n) + '</span></span> <span style="font-size:10px;color:#8b949e">' + conv + '</span>';
+}
+
+function fillOpinions() {
+  PORTFOLIOS.forEach(p => {
+    p.tickers.forEach(({ sym }) => {
+      const o = opinionData[sym];
+      if (!o) return;
+      const safeId = sym.replace(/[^a-zA-Z0-9]/g, '_');
+      const base = p.id + '-' + safeId + '-';
+      const rEl = document.getElementById(base + 'orating');
+      if (rEl) {
+        const cls = o.rating === 'Overweight' ? 'ow' : o.rating === 'Underweight' ? 'uw' : 'nv';
+        const label = o.rating === 'Overweight' ? 'OVERWEIGHT' : o.rating === 'Underweight' ? 'UNDERWEIGHT' : 'NO VIEW';
+        rEl.className = '';
+        rEl.innerHTML = '<span class="op-badge ' + cls + '" title="' + (o.basis || '').replace(/"/g, '&quot;') + '">' + label + (o.marginal ? '*' : '') + '</span>';
+        rEl.parentElement.setAttribute('data-val', o.rating === 'Overweight' ? 1 : o.rating === 'Underweight' ? -1 : 0);
+      }
+      const tEl = document.getElementById(base + 'otarget');
+      if (tEl) {
+        tEl.textContent = o.target != null ? '$' + Number(o.target).toLocaleString(undefined, { maximumFractionDigits: 2 }) : '—';
+        tEl.className = o.target != null ? 'val' : 'val muted';
+      }
+      const cEl = document.getElementById(base + 'oconv');
+      if (cEl) {
+        cEl.className = '';
+        cEl.innerHTML = dotsHtml(o.conviction);
+        cEl.parentElement.setAttribute('data-val', o.conviction === 'High' ? 3 : o.conviction === 'Medium' ? 2 : o.conviction === 'Low' ? 1 : 0);
+      }
+      updateOpinionUpside(p.id, sym, o.refPrice);
+    });
+  });
+}
+
+// Upside vs live price when loaded, otherwise vs the price at the time of the opinion
+function updateOpinionUpside(pid, sym, livePrice) {
+  const o = opinionData[sym];
+  if (!o) return;
+  const safeId = sym.replace(/[^a-zA-Z0-9]/g, '_');
+  const el = document.getElementById(pid + '-' + safeId + '-oupside');
+  if (!el) return;
+  if (o.target == null) { el.textContent = '—'; el.className = 'val muted'; return; }
+  const price = livePrice || o.refPrice;
+  if (!price) return;
+  const up = (o.target / price - 1) * 100;
+  el.textContent = (up >= 0 ? '+' : '') + up.toFixed(1) + '%';
+  el.className = 'val ' + (up >= 8 ? 'green' : up >= 0 ? '' : 'red');
+  el.parentElement.setAttribute('data-val', up);
+}
+
+function opinionBlockHtml(sym) {
+  const o = opinionData[sym];
+  if (!o) return '';
+  const cls = o.rating === 'Overweight' ? 'ow' : o.rating === 'Underweight' ? 'uw' : 'nv';
+  const tgt = o.target != null ? '$' + Number(o.target).toLocaleString(undefined, { maximumFractionDigits: 2 }) : '—';
+  return `
+    <div class="op-box">
+      <div class="op-head">
+        <span class="op-lbl">Claude's Opinion</span>
+        <span class="op-badge ${cls}">${o.rating.toUpperCase()}${o.marginal ? '*' : ''}</span>
+        <span><span class="op-lbl">12M Target</span> <strong style="color:#fff">${tgt}</strong></span>
+        <span><span class="op-lbl">Conviction</span> ${dotsHtml(o.conviction)}</span>
+        <span><span class="op-lbl">Next earnings</span> ${o.nextEarnings || '—'}</span>
+        <span><span class="op-lbl">As of</span> ${opinionMeta.updated || ''} @ $${o.refPrice}</span>
+      </div>
+      <div><strong style="color:#3fb950">Thesis:</strong> ${o.thesis}</div>
+      <div style="margin-top:6px"><strong style="color:#f85149">Key risk:</strong> ${o.risk}</div>
+      <div class="op-basis">Basis: ${o.basis}${o.marginal ? ' &nbsp;·&nbsp; * marginal: within 2 pts of the 8% return hurdle' : ''}</div>
+      <div class="op-disc">AI-generated opinion from public data on the "as of" date. Not investment advice; refresh after earnings.</div>
+    </div>`;
+}
+
+// ── Load FCF data from fcf_data.json (persists independently of index.html) ──
+async function loadFCFData() {
+  try {
+    const base = window.location.href.split('?')[0].replace(/\/+$/, '');
+    const jsonUrl = base.endsWith('.html')
+      ? base.substring(0, base.lastIndexOf('/')) + '/fcf_data.json'
+      : base + '/fcf_data.json';
+
+    const res = await fetch(jsonUrl, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+      cache: 'no-cache'
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const json = await res.json();
+    fcfData = json.data || {};
+    const updated = json.updated || 'unknown';
+    const count = Object.values(fcfData).filter(v => v && v.current !== null).length;
+    console.log('FCF data loaded: ' + count + ' tickers, updated ' + updated);
+    const sub = document.querySelector('.sub-title');
+    if (sub) sub.textContent += ' · FCF: ' + updated;
+  } catch (e) {
+    // Fallback to inline injected data if fetch fails
+    if (window._FCF_DATA) {
+      fcfData = window._FCF_DATA.data || {};
+      const updated = window._FCF_DATA.updated || 'unknown';
+      console.log('FCF data loaded from inline fallback, updated ' + updated);
+      const sub = document.querySelector('.sub-title');
+      if (sub) sub.textContent += ' · FCF: ' + updated;
+    } else {
+      console.warn('FCF data unavailable:', e.message);
+    }
+  }
+}
+
+// ── Screener state ───────────────────────────────────────────────────────────
+let screenerData    = null;
+let screenerLoaded  = false;
+let screenerRows    = [];
+
+// ── Switch to screener tab ───────────────────────────────────────────────────
+function switchToScreener() {
+  document.querySelectorAll('.portfolio-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.screener-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.ptab').forEach(t => t.classList.remove('active'));
+  document.getElementById('panel-screener').classList.add('active');
+  document.getElementById('ptab-screener').classList.add('active');
+  document.getElementById('fetch-btn').style.display = 'none';
+  // Load screener data on first visit
+  if (!screenerLoaded) loadScreenerData();
+}
+
+// ── Switch portfolio (restore fetch btn) ─────────────────────────────────────
+const _origSwitchPortfolio = typeof switchPortfolio === 'function' ? switchPortfolio : null;
+
+// ── Load screener_data.json ───────────────────────────────────────────────────
+async function loadScreenerData() {
+  setScreenerStatus('Loading screener data...', 'loading');
+  try {
+    // Build absolute URL to handle GitHub Pages path correctly
+    const base = window.location.href.split('?')[0].replace(/\/+$/, '');
+    const jsonUrl = base.endsWith('.html')
+      ? base.substring(0, base.lastIndexOf('/')) + '/screener_data.json'
+      : base + '/screener_data.json';
+
+    const res = await fetch(jsonUrl, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+      cache: 'no-cache'
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    screenerData   = await res.json();
+    screenerLoaded = true;
+    const count    = screenerData.count || Object.keys(screenerData.data || {}).length;
+    document.getElementById('screener-updated').textContent = 'Updated: ' + (screenerData.updated || 'unknown');
+    setScreenerStatus('Data loaded — ' + count + ' tickers available. Set filters and click SCREEN.', '');
+    populateSectors();
+  } catch (e) {
+    // Fallback: try window._SCREENER_DATA if fetch fails (injected by Action)
+    if (window._SCREENER_DATA) {
+      screenerData   = window._SCREENER_DATA;
+      screenerLoaded = true;
+      const count    = screenerData.count || Object.keys(screenerData.data || {}).length;
+      document.getElementById('screener-updated').textContent = 'Updated: ' + (screenerData.updated || 'unknown');
+      setScreenerStatus('Data loaded — ' + count + ' tickers available. Set filters and click SCREEN.', '');
+      populateSectors();
+    } else {
+      setScreenerStatus('Could not load screener data: ' + e.message + ' — check browser console for details', 'error');
+      console.error('Screener fetch error:', e);
+      console.log('Attempted URL:', window.location.href);
+    }
+  }
+}
+
+function setScreenerStatus(msg, state) {
+  document.getElementById('screener-status-text').textContent = msg;
+  const d = document.getElementById('screener-dot');
+  d.className = 'dot' + (state ? ' ' + state : '');
+}
+
+function populateSectors() {
+  if (!screenerData) return;
+  const sectors = new Set();
+  Object.values(screenerData.data || {}).forEach(d => { if (d.sector) sectors.add(d.sector); });
+  const sel = document.getElementById('f-sector');
+  // Clear existing options except 'All sectors'
+  while (sel.options.length > 1) sel.remove(1);
+  [...sectors].sort().forEach(s => {
+    const o = document.createElement('option');
+    o.value = s; o.textContent = s;
+    sel.appendChild(o);
+  });
+}
+
+function fmtCap(cap) {
+  if (!cap) return '—';
+  if (cap >= 1e12) return '$' + (cap/1e12).toFixed(2) + 'T';
+  if (cap >= 1e9)  return '$' + (cap/1e9).toFixed(1) + 'B';
+  if (cap >= 1e6)  return '$' + (cap/1e6).toFixed(0) + 'M';
+  return '$' + cap;
+}
+
+// ── Run screener with current filters ────────────────────────────────────────
+function runScreener() {
+  if (!screenerData) { loadScreenerData(); return; }
+
+  const trendFilter    = document.getElementById('f-trend').value;
+  const projFilter     = document.getElementById('f-proj').value;
+  const minYield       = parseFloat(document.getElementById('f-minyield').value) / 100;
+  const sectorFilter   = document.getElementById('f-sector').value;
+  const vsAvgFilter    = document.getElementById('f-vsavg').value;
+  const fcfniFilter    = document.getElementById('f-fcfni').value;
+  const fcfGrowthFilter= document.getElementById('f-fcfgrowth').value;
+  const treasuryFilter = document.getElementById('f-treasury').value;
+  const pfcfFilter     = document.getElementById('f-pfcf').value;
+  const greenFilter    = document.getElementById('f-greenflag').value;
+  const sortBy         = document.getElementById('f-sortby').value;
+
+  const allowedTrends  = trendFilter === 'all' ? null : trendFilter.split(',');
+  const allowedProjs   = projFilter  === 'all' ? null : projFilter.split(',');
+  const treasury10yr   = screenerData.treasury10yr || 0;
+
+  const tbody = document.getElementById('screener-tbody');
+  tbody.innerHTML = '';
+  screenerRows = [];
+  let matched = 0;
+
+  const data = screenerData.data || {};
+  const rows = [];
+
+  Object.entries(data).forEach(([sym, d]) => {
+    if (!d || d.excluded) return;
+
+    const cur    = d.current;
+    const avg    = d.avg5y;
+    const trend  = d.trend    || 'insufficient';
+    const proj   = d.proj2026 || 'unclear';
+    const fcfni  = d.fcfNetIncomeRatio;
+    const fcfGr  = d.fcfPSGrowth3yr;
+    const fcfSt  = d.fcfPSStability;
+    const vsTres = d.fcfVsTreasury;
+    const pfcf   = d.pFCF;
+    const pfcfAv = d.pFCFAvg5y;
+    const pfcfVs = d.pFCFVsAvg;
+    const sy     = d.shareholderYield;
+    const green  = d.fcfVsEPS;
+
+    // ── Apply all filters ──────────────────────────────────────────────────
+    if (allowedTrends && !allowedTrends.includes(trend)) return;
+    if (allowedProjs  && !allowedProjs.includes(proj))   return;
+    if (cur === null || cur === undefined)                return;
+    if (cur < minYield)                                  return;
+    if (sectorFilter !== 'all' && d.sector !== sectorFilter) return;
+
+    // FCF/Net Income filter
+    if (fcfniFilter === 'gt1' && (fcfni === null || fcfni <= 1)) return;
+    if (fcfniFilter === 'any_positive' && (fcfni === null || fcfni <= 0)) return;
+
+    // FCF/S growth filter
+    if (fcfGrowthFilter === 'positive' && (fcfGr === null || fcfGr <= 0)) return;
+    if (fcfGrowthFilter === 'positive_stable' &&
+        (fcfGr === null || fcfGr <= 0 || fcfSt === null || fcfSt < 0.66)) return;
+
+    // FCF Yield vs Treasury filter
+    if (treasuryFilter === 'gt2pct' && (vsTres === null || vsTres < 0.02)) return;
+    if (treasuryFilter === 'gt0'    && (vsTres === null || vsTres < 0))     return;
+
+    // P/FCF filter
+    if (pfcfFilter === 'below'        && (pfcfVs === null || pfcfVs >= 0))   return;
+    if (pfcfFilter === 'sell_zone'    && (pfcfVs === null || pfcfVs < 20 || pfcfVs > 30)) return;
+    if (pfcfFilter === 'not_extended' && (pfcfVs !== null && pfcfVs >= 20))  return;
+
+    // TTM vs 5yr avg filter
+    if (vsAvgFilter === 'above' && avg !== null && cur < avg) return;
+    if (vsAvgFilter === 'below' && avg !== null && cur > avg) return;
+
+    // Green flag filter
+    if (greenFilter === 'true' && green !== true) return;
+
+    matched++;
+
+    // ── Build sort value ──────────────────────────────────────────────────
+    let sortVal = 0;
+    if (sortBy === 'shareholderYield')  sortVal = sy     !== null ? sy     : -999;
+    if (sortBy === 'current')           sortVal = cur    !== null ? cur    : -999;
+    if (sortBy === 'fcfVsTreasury')     sortVal = vsTres !== null ? vsTres : -999;
+    if (sortBy === 'fcfPSGrowth3yr')    sortVal = fcfGr  !== null ? fcfGr  : -999;
+    if (sortBy === 'fcfPSStability')    sortVal = fcfSt  !== null ? fcfSt  : -999;
+    if (sortBy === 'pFCFVsAvg')         sortVal = pfcfVs !== null ? -pfcfVs : 999; // ascending = cheaper
+
+    const vsAvg   = (avg !== null && avg !== 0) ? ((cur - avg) / Math.abs(avg) * 100) : null;
+    const pct     = v => v !== null ? (v*100).toFixed(2)+'%' : '—';
+    const pctCls  = v => v === null ? 'muted' : v >= 0.05 ? 'green' : v >= 0.02 ? '' : v >= 0 ? 'amber' : 'red';
+    const signCls = v => v === null ? 'muted' : v > 0 ? 'green' : 'red';
+    const signFmt = v => v === null ? '—' : (v > 0 ? '+' : '') + v.toFixed(1) + '%';
+
+    const tr = document.createElement('tr');
+    tr.setAttribute('data-sym', sym);
+    tr.setAttribute('data-sort', sortVal);
+    tr.style.cursor = 'default';
+    tr.innerHTML = `
+      <td class="sym-cell">${sym}</td>
+      <td class="name-cell" style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${d.name || '—'}</td>
+      <td style="font-size:10px;color:#8b949e;white-space:nowrap;">${d.sector || '—'}</td>
+      <td style="text-align:right"><span class="val ${pctCls(cur)}">${pct(cur)}</span></td>
+      <td style="text-align:right"><span class="val ${avg===null?'muted':''}">${avg!==null?(avg*100).toFixed(2)+'%':'—'}</span></td>
+      <td style="text-align:right"><span class="val ${signCls(vsAvg!==null?vsAvg/100:null)}">${signFmt(vsAvg)}</span></td>
+      <td style="text-align:right"><span class="val ${pctCls(sy)}">${pct(sy)}</span></td>
+      <td style="text-align:right"><span class="val ${fcfni===null?'muted':fcfni>1?'green':fcfni>0?'amber':'red'}">${fcfni!==null?fcfni.toFixed(2):'—'}</span></td>
+      <td style="text-align:right"><span class="val ${fcfGr===null?'muted':fcfGr>0?'green':'red'}">${fcfGr!==null?(fcfGr*100).toFixed(1)+'%':'—'}</span></td>
+      <td style="text-align:right"><span class="val ${fcfSt===null?'muted':fcfSt>=0.66?'green':fcfSt>=0.33?'amber':'red'}">${fcfSt!==null?(fcfSt*100).toFixed(0)+'%':'—'}</span></td>
+      <td style="text-align:right"><span class="val ${signCls(vsTres)}">${vsTres!==null?(vsTres>0?'+':'')+(vsTres*100).toFixed(2)+'%':'—'}</span></td>
+      <td style="text-align:right"><span class="val ${pfcf===null?'muted':''}">${pfcf!==null?pfcf.toFixed(1)+'x':'—'}</span></td>
+      <td style="text-align:right"><span class="val muted">${pfcfAv!==null?pfcfAv.toFixed(1)+'x':'—'}</span></td>
+      <td style="text-align:right"><span class="val ${pfcfVs===null?'muted':pfcfVs>20?'red':pfcfVs<0?'green':'amber'}">${pfcfVs!==null?(pfcfVs>0?'+':'')+pfcfVs.toFixed(1)+'%':'—'}</span></td>
+      <td style="text-align:center">${green===true?'<span style="color:#3fb950;font-size:14px;">✓</span>':green===false?'<span style="color:#484f58;font-size:12px;">✗</span>':'<span style="color:#484f58;">—</span>'}</td>
+      <td><span class="trend-badge ${trend}">${trend==='improving'?'↑ Imp':trend==='mixed'?'~ Mix':trend==='deteriorating'?'↓ Dec':'n/a'}</span></td>
+      <td><span class="proj-badge ${proj}">${proj==='likely_up'?'↑ Up':proj==='likely_down'?'↓ Dn':'?'}</span></td>
+      <td style="text-align:right"><span class="val muted" style="font-size:11px;">${fmtCap(d.marketCap)}</span></td>`;
+    rows.push({ tr, sortVal });
+  });
+
+  // Sort by selected ranking signal (descending by default, except pFCFVsAvg ascending)
+  rows.sort((a, b) => b.sortVal - a.sortVal);
+  rows.forEach(({ tr }) => tbody.appendChild(tr));
+
+  // Show treasury rate in status
+  const tStr = screenerData.treasury10yr
+    ? ` · 10yr Treasury: ${(screenerData.treasury10yr*100).toFixed(2)}%`
+    : '';
+  document.getElementById('screener-count').textContent =
+    matched + ' results' + (matched === 0 ? ' — try loosening filters' : '');
+  setScreenerStatus('Screened ' + Object.keys(data).length + ' tickers → ' + matched + ' matches' + tStr, '');
+}
+
+// ── Sort screener table ───────────────────────────────────────────────────────
+function sortScreener(th) {
+  const col    = th.getAttribute('data-col');
+  const isAsc  = !th.classList.contains('asc');
+  th.closest('thead').querySelectorAll('th.sortable').forEach(h => h.classList.remove('asc','desc'));
+  th.classList.add(isAsc ? 'asc' : 'desc');
+
+  // Map col name to td index
+  const colMap = { 'scr-cur': 3, 'scr-avg': 4, 'scr-vs': 5, 'scr-cap': 8 };
+  const tdIdx  = colMap[col];
+  if (tdIdx === undefined) return;
+
+  const tbody = document.getElementById('screener-tbody');
+  const rows  = Array.from(tbody.querySelectorAll('tr'));
+  rows.sort((a, b) => {
+    const va = parseFloat(a.children[tdIdx].getAttribute('data-val'));
+    const vb = parseFloat(b.children[tdIdx].getAttribute('data-val'));
+    if (isNaN(va) && isNaN(vb)) return 0;
+    if (isNaN(va)) return 1;
+    if (isNaN(vb)) return -1;
+    return isAsc ? va - vb : vb - va;
+  });
+  rows.forEach(r => tbody.appendChild(r));
+}
+
+// ── Sort portfolio rows alphabetically ───────────────────────────────────────
+function sortPortfolioAlpha(portfolioId) {
+  const tbody = document.getElementById('tbody-' + portfolioId);
+  if (!tbody) return;
+  // Get all data rows (skip drawer rows)
+  const pairs = [];
+  const rows = Array.from(tbody.children);
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    if (row.classList.contains('data-row')) {
+      const sym = row.querySelector('.sym-text') || row.querySelector('.sym-cell');
+      const drawer = rows[i + 1] && rows[i + 1].classList.contains('chart-drawer') ? rows[i + 1] : null;
+      pairs.push({ row, drawer, sym: sym ? sym.textContent.trim() : '' });
+    }
+  }
+  pairs.sort((a, b) => a.sym.localeCompare(b.sym));
+  pairs.forEach(({ row, drawer }) => {
+    tbody.appendChild(row);
+    if (drawer) tbody.appendChild(drawer);
+  });
+}
+
+// ── Sort table ───────────────────────────────────────────────────────────────
+function sortTable(th) {
+  const col = th.getAttribute('data-col');
+  const pid = th.getAttribute('data-pid');
+  const tbody = document.getElementById('tbody-' + pid);
+  if (!tbody) return;
+
+  // Determine direction
+  const wasAsc = th.classList.contains('asc');
+  const isAsc  = !wasAsc;
+
+  // Clear all sort indicators in this table
+  th.closest('thead').querySelectorAll('th.sortable').forEach(h => {
+    h.classList.remove('asc', 'desc');
+  });
+  th.classList.add(isAsc ? 'asc' : 'desc');
+
+  // Keep each ticker row paired with its chart drawer
+  const kids = Array.from(tbody.children);
+  const pairs = [];
+  kids.forEach((r, i) => {
+    if (r.classList.contains('data-row')) {
+      const d = kids[i + 1] && kids[i + 1].classList.contains('chart-drawer') ? kids[i + 1] : null;
+      pairs.push({ row: r, drawer: d });
+    }
+  });
+  const getVal = (row) => {
+    const td = row.querySelector('[id$="-' + col + '"]');
+    return td ? parseFloat(td.parentElement.getAttribute('data-val')) : NaN;
+  };
+  pairs.sort((a, b) => {
+    const valA = getVal(a.row), valB = getVal(b.row);
+    // Push rows with no data to the bottom always
+    if (isNaN(valA) && isNaN(valB)) return 0;
+    if (isNaN(valA)) return 1;
+    if (isNaN(valB)) return -1;
+    return isAsc ? valA - valB : valB - valA;
+  });
+  pairs.forEach(({ row, drawer }) => {
+    tbody.appendChild(row);
+    if (drawer) tbody.appendChild(drawer);
+  });
+}
+
+// ── Chart math helpers ───────────────────────────────────────────────────────
+function calcEMA(arr, period) {
+  if (arr.length < period) return [];
+  const k = 2 / (period + 1);
+  const result = new Array(arr.length).fill(null);
+  // Seed with SMA
+  let seed = arr.slice(0, period).reduce((a,b) => a+b, 0) / period;
+  result[period - 1] = seed;
+  for (let i = period; i < arr.length; i++) {
+    result[i] = arr[i] * k + result[i-1] * (1 - k);
+  }
+  return result;
+}
+
+function calcMACD(closes) {
+  const ema12 = calcEMA(closes, 12);
+  const ema26 = calcEMA(closes, 26);
+  const macdLine = closes.map((_, i) =>
+    ema12[i] !== null && ema26[i] !== null ? ema12[i] - ema26[i] : null
+  );
+  // Signal = 9-period EMA of macdLine (skip nulls)
+  const validMacd = macdLine.filter(v => v !== null);
+  const signalFull = calcEMA(validMacd, 9);
+  // Re-map signal back to full length
+  const signal = new Array(closes.length).fill(null);
+  let si = 0;
+  for (let i = 0; i < closes.length; i++) {
+    if (macdLine[i] !== null) { signal[i] = signalFull[si] || null; si++; }
+  }
+  const histogram = closes.map((_, i) =>
+    macdLine[i] !== null && signal[i] !== null ? macdLine[i] - signal[i] : null
+  );
+  return { macdLine, signal, histogram };
+}
+
+function calcRSIFull(closes, period) {
+  period = period || 14;
+  const result = new Array(closes.length).fill(null);
+  if (closes.length < period + 1) return result;
+  let gains = 0, losses = 0;
+  for (let i = 1; i <= period; i++) {
+    const d = closes[i] - closes[i-1];
+    if (d >= 0) gains += d; else losses -= d;
+  }
+  let ag = gains / period, al = losses / period;
+  const rsi = (ag, al) => al === 0 ? 100 : 100 - (100 / (1 + ag/al));
+  result[period] = rsi(ag, al);
+  for (let i = period + 1; i < closes.length; i++) {
+    const d = closes[i] - closes[i-1];
+    ag = (ag * (period-1) + Math.max(d,0)) / period;
+    al = (al * (period-1) + Math.max(-d,0)) / period;
+    result[i] = rsi(ag, al);
+  }
+  return result;
+}
+
+function calcSMAFull(closes, period) {
+  return closes.map((_, i) =>
+    i >= period - 1 ? closes.slice(i - period + 1, i + 1).reduce((a,b)=>a+b,0)/period : null
+  );
+}
+
+// ── Drawer toggle ─────────────────────────────────────────────────────────────
+function destroyOpenCharts() {
+  openDrawer.charts.forEach(c => { try { c.destroy(); } catch(e){} });
+  openDrawer.charts = [];
+}
+
+function toggleDrawer(pid, sym, name, rowEl) {
+  const safeId = sym.replace(/[^a-zA-Z0-9]/g, '_');
+  const drawerId = 'drawer-' + pid + '-' + safeId;
+  const drawerEl = document.getElementById(drawerId);
+  if (!drawerEl) return;
+
+  const isOpen = drawerEl.classList.contains('open');
+
+  // Close any open drawer first
+  destroyOpenCharts();
+  document.querySelectorAll('.chart-drawer.open').forEach(d => {
+    d.classList.remove('open');
+    const inner = d.querySelector('.drawer-inner');
+    if (inner) inner.innerHTML = '';
+  });
+  document.querySelectorAll('tr.data-row.expanded').forEach(r => r.classList.remove('expanded'));
+
+  if (isOpen) return; // was open — just close it
+
+  // No data yet
+  if (!tickerData[sym]) {
+    const inner = document.getElementById('drawerinner-' + pid + '-' + safeId);
+    if (inner) inner.innerHTML = opinionBlockHtml(sym) + '<div style="padding:20px;color:#484f58;font-size:12px;">⏳ Chart data not loaded yet — click LOAD DATA first</div>';
+    drawerEl.classList.add('open');
+    rowEl.classList.add('expanded');
+    return;
+  }
+
+  drawerEl.classList.add('open');
+  rowEl.classList.add('expanded');
+  openDrawer.sym = sym;
+
+  const inner = document.getElementById('drawerinner-' + pid + '-' + safeId);
+  const { closes, volumes, dates } = tickerData[sym];
+  const N = 100; // show last 100 days
+  const c = closes.slice(-N);
+  const v = volumes.slice(-N);
+  const d = dates.slice(-N);
+  const offset = closes.length - N;
+
+  // Compute indicators over full history, then slice last N
+  const sma50full  = calcSMAFull(closes, 50);
+  const sma200full = calcSMAFull(closes, 200);
+  const rsiFull    = calcRSIFull(closes);
+  const { macdLine, signal, histogram } = calcMACD(closes);
+  const vol20avg   = closes.map((_, i) => {
+    if (i < 19) return null;
+    return volumes.slice(i-19, i+1).reduce((a,b)=>a+b,0)/20;
+  });
+
+  const sma50s  = sma50full.slice(-N);
+  const sma200s = sma200full.slice(-N);
+  const rsiS    = rsiFull.slice(-N);
+  const macdS   = macdLine.slice(-N);
+  const sigS    = signal.slice(-N);
+  const histS   = histogram.slice(-N);
+  const vol20s  = vol20avg.slice(-N);
+
+  const upDays   = c.map((p,i) => i === 0 ? false : p >= c[i-1]);
+  const volColors = v.map((_, i) => upDays[i] ? 'rgba(63,185,80,0.7)' : 'rgba(248,81,73,0.7)');
+  const histColors = histS.map(h => h === null ? 'transparent' : h >= 0 ? 'rgba(63,185,80,0.8)' : 'rgba(248,81,73,0.8)');
+
+  // FCF history data for this ticker
+  const fcfEntry   = fcfData[sym] || {};
+  const fcfHistory = fcfEntry.history || [];
+  const fcfAvg5y   = fcfEntry.avg5y   || null;
+  const fcfCurrent = fcfEntry.current || null;
+  const fcfHasData = fcfHistory.length > 0;
+
+  inner.innerHTML = `
+    <div class="drawer-header">
+      <div class="drawer-title">${sym} <span style="font-size:12px;color:#8b949e;font-weight:400;letter-spacing:0">${name}</span></div>
+      <button class="drawer-close" onclick="closeDrawer('${pid}','${safeId}','${drawerId}')">✕ Close</button>
+    </div>
+    ${opinionBlockHtml(sym)}
+    <div class="charts-grid">
+      <div class="chart-panel">
+        <div class="chart-panel-title">Price + Moving Averages (Last 100 Days)</div>
+        <div class="chart-legend">
+          <span><span class="cleg" style="background:#58a6ff"></span>Price</span>
+          <span><span class="cleg" style="background:#f0883e"></span>50-Day SMA</span>
+          <span><span class="cleg" style="background:#bc8cff"></span>200-Day SMA</span>
+        </div>
+        <div style="position:relative;height:240px"><canvas id="dc-price-${safeId}"></canvas></div>
+      </div>
+      <div class="chart-panel">
+        <div class="chart-panel-title">RSI (14-Period Daily)</div>
+        <div class="chart-legend">
+          <span><span class="cleg" style="background:#58a6ff"></span>RSI</span>
+          <span style="color:#f85149">▲ 70 Overbought</span>
+          <span style="color:#3fb950">▼ 30 Oversold</span>
+        </div>
+        <div style="position:relative;height:240px"><canvas id="dc-rsi-${safeId}"></canvas></div>
+      </div>
+      <div class="chart-panel full-width">
+        <div class="chart-panel-title">FCF Yield — Annual History &amp; 5-Year Average</div>
+        <div class="chart-legend">
+          <span><span class="cleg" style="background:#3fb950"></span>Annual FCF Yield</span>
+          <span><span class="cleg" style="background:#d29922"></span>5-Year Avg</span>
+          <span><span class="cleg" style="background:#58a6ff"></span>Current TTM</span>
+        </div>
+        <div style="position:relative;height:200px"><canvas id="dc-fcf-${safeId}"></canvas></div>
+        ${!fcfHasData ? '<div style="color:#484f58;font-size:11px;margin-top:8px;">⏳ FCF data not yet available — run the GitHub Action to populate</div>' : ''}
+      </div>
+    </div>
+    <div class="chart-hint">Click any row again to close · Price &amp; RSI: last 100 trading days · FCF: annual, up to 5 years</div>`;
+
+  // Chart defaults
+  const xAxis    = { ticks: { color: '#8b949e', maxTicksLimit: 8, font: { size: 9 } }, grid: { color: '#1e242c' } };
+  const yAxis    = (cb) => ({ ticks: { color: '#8b949e', font: { size: 9 }, callback: cb || (v => v) }, grid: { color: '#1e242c' } });
+  const noLegend = { legend: { display: false } };
+
+  // ── Price chart ────────────────────────────────────────────────────────────
+  const pc = new Chart(document.getElementById('dc-price-'+safeId), {
+    type: 'line',
+    data: { labels: d, datasets: [
+      { label:'Price',   data:c,      borderColor:'#58a6ff', borderWidth:1.5, pointRadius:0, tension:0.1, fill:false },
+      { label:'50 SMA',  data:sma50s, borderColor:'#f0883e', borderWidth:1.5, pointRadius:0, fill:false },
+      { label:'200 SMA', data:sma200s,borderColor:'#bc8cff', borderWidth:1.5, pointRadius:0, fill:false }
+    ]},
+    options: { responsive:true, maintainAspectRatio:false, plugins:noLegend,
+      scales:{ x:xAxis, y:yAxis(v=>'$'+v.toFixed(0)) }}
+  });
+
+  // ── RSI chart ──────────────────────────────────────────────────────────────
+  const rc = new Chart(document.getElementById('dc-rsi-'+safeId), {
+    type: 'line',
+    data: { labels: d, datasets: [
+      { label:'RSI', data:rsiS, borderColor:'#58a6ff', borderWidth:1.5, pointRadius:0, fill:false,
+        segment: { borderColor: ctx => {
+          const v = ctx.p1.parsed.y;
+          return v >= 70 ? '#f85149' : v <= 30 ? '#3fb950' : '#58a6ff';
+        }}
+      },
+      { label:'OB', data:d.map(()=>70), borderColor:'rgba(248,81,73,0.35)', borderWidth:1, borderDash:[4,3], pointRadius:0, fill:false },
+      { label:'OS', data:d.map(()=>30), borderColor:'rgba(63,185,80,0.35)',  borderWidth:1, borderDash:[4,3], pointRadius:0, fill:false }
+    ]},
+    options: { responsive:true, maintainAspectRatio:false, plugins:noLegend,
+      scales:{ x:xAxis, y:{ min:0, max:100, ticks:{ color:'#8b949e', font:{size:9}, stepSize:25 }, grid:{ color:'#1e242c' } } }}
+  });
+
+  // ── FCF Yield history chart ────────────────────────────────────────────────
+  const fcfLabels   = fcfHistory.map(h => String(h.year));
+  const fcfYields   = fcfHistory.map(h => h.fcfYield !== null ? +(h.fcfYield * 100).toFixed(2) : null);
+  const fcfAvgLine  = fcfLabels.map(() => fcfAvg5y !== null ? +(fcfAvg5y * 100).toFixed(2) : null);
+  const fcfCurLine  = fcfLabels.map(() => fcfCurrent !== null ? +(fcfCurrent * 100).toFixed(2) : null);
+  const barColors   = fcfYields.map(v => v === null ? 'transparent' : v >= 5 ? 'rgba(63,185,80,0.75)' : v >= 2 ? 'rgba(88,166,255,0.75)' : v >= 0 ? 'rgba(210,153,34,0.75)' : 'rgba(248,81,73,0.75)');
+
+  const fc = new Chart(document.getElementById('dc-fcf-'+safeId), {
+    type: 'bar',
+    data: {
+      labels: fcfLabels.length ? fcfLabels : ['No data'],
+      datasets: [
+        { label:'FCF Yield %', data: fcfYields.length ? fcfYields : [0],
+          backgroundColor: barColors, borderWidth:0, order:2 },
+        { label:'5yr Avg', data: fcfAvgLine.length ? fcfAvgLine : [null],
+          type:'line', borderColor:'#d29922', borderWidth:2, borderDash:[5,3],
+          pointRadius:0, fill:false, order:1 },
+        { label:'Current TTM', data: fcfCurLine.length ? fcfCurLine : [null],
+          type:'line', borderColor:'#58a6ff', borderWidth:2, borderDash:[3,3],
+          pointRadius:0, fill:false, order:1 }
+      ]
+    },
+    options: { responsive:true, maintainAspectRatio:false, plugins:noLegend,
+      scales:{
+        x: xAxis,
+        y: { ticks:{ color:'#8b949e', font:{size:9}, callback: v => v+'%' }, grid:{ color:'#1e242c' } }
+      }
+    }
+  });
+
+  openDrawer.charts = [pc, rc, fc];
+}
+
+function closeDrawer(pid, safeId, drawerId) {
+  destroyOpenCharts();
+  const el = document.getElementById(drawerId);
+  if (el) {
+    el.classList.remove('open');
+    // Clear inner content after hiding so canvases don't linger
+    const inner = el.querySelector('.drawer-inner');
+    if (inner) inner.innerHTML = '';
+  }
+  const rowEl = document.getElementById('row-' + pid + '-' + safeId);
+  if (rowEl) rowEl.classList.remove('expanded');
+  openDrawer.sym = null;
+}
+
+// ── Build DOM ────────────────────────────────────────────────────────────────
+function buildUI() {
+  // Portfolio tabs
+  const ptabs = document.getElementById('ptabs');
+  PORTFOLIOS.forEach((p, i) => {
+    const t = document.createElement('div');
+    t.className = 'ptab' + (i === 0 ? ' active' : '');
+    t.id = 'ptab-' + p.id;
+    t.textContent = p.name;
+    t.onclick = () => switchPortfolio(p.id);
+    ptabs.appendChild(t);
+  });
+  // Screener tab
+  const st = document.createElement('div');
+  st.className = 'ptab';
+  st.id = 'ptab-screener';
+  st.textContent = '🔍 FCF Screener';
+  st.onclick = () => switchToScreener();
+  ptabs.appendChild(st);
+
+  // Panels
+  const container = document.getElementById('portfolio-panels');
+  PORTFOLIOS.forEach((p, pi) => {
+    const panel = document.createElement('div');
+    panel.className = 'portfolio-panel' + (pi === 0 ? ' active' : '');
+    panel.id = 'panel-' + p.id;
+
+    const totalCalls = p.tickers.length * 2;
+    const estMins = Math.ceil(totalCalls / 8) * 2;
+
+    panel.innerHTML = `
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
+        <div class="portfolio-name">${p.name}</div>
+        <div style="font-size:11px;color:#484f58;">${p.tickers.length} holdings · ${totalCalls} API calls · ~${estMins} min to load</div>
+        <button onclick="sortPortfolioAlpha('${p.id}')" style="margin-left:auto;background:#21262d;border:1px solid #30363d;border-radius:6px;color:#8b949e;font-family:'Courier New',monospace;font-size:11px;padding:4px 12px;cursor:pointer;" onmouseover="this.style.borderColor='#58a6ff';this.style.color='#c9d1d9'" onmouseout="this.style.borderColor='#30363d';this.style.color='#8b949e'">A→Z Sort</button>
+      </div>
+      <div class="summary-strip" id="summary-${p.id}">
+        <span><span class="sdot" style="background:#3fb950"></span> Above 200 SMA: <strong id="above200-${p.id}" style="color:#3fb950">—</strong></span>
+        <span><span class="sdot" style="background:#f85149"></span> Below 200 SMA: <strong id="below200-${p.id}" style="color:#f85149">—</strong></span>
+        <span><span class="sdot" style="background:#f85149"></span> Overbought RSI≥70: <strong id="overbought-${p.id}" style="color:#f85149">—</strong></span>
+        <span><span class="sdot" style="background:#3fb950"></span> Oversold RSI≤30: <strong id="oversold-${p.id}" style="color:#3fb950">—</strong></span>
+      </div>
+      <div class="stock-table-wrap">
+        <table id="table-${p.id}">
+          <thead>
+            <tr>
+              <th>Symbol</th>
+              <th class="col-name">Name</th>
+              <th>Price</th>
+              <th class="sortable" data-col="sma50" data-pid="${p.id}" onclick="sortTable(this)" title="50-Day SMA">50D SMA<span class="sort-icon"></span></th>
+              <th class="sortable" data-col="sma200" data-pid="${p.id}" onclick="sortTable(this)" title="200-Day SMA">200D SMA<span class="sort-icon"></span></th>
+              <th class="sortable" data-col="vs200" data-pid="${p.id}" onclick="sortTable(this)" title="Price vs 200-Day SMA">vs 200D<span class="sort-icon"></span></th>
+              <th class="sortable" data-col="sma200w" data-pid="${p.id}" onclick="sortTable(this)" title="200-Week SMA">200W SMA<span class="sort-icon"></span></th>
+              <th class="sortable" data-col="rsid" data-pid="${p.id}" onclick="sortTable(this)" title="Daily RSI">D RSI<span class="sort-icon"></span></th>
+              <th class="sortable" data-col="rsiw" data-pid="${p.id}" onclick="sortTable(this)" title="Weekly RSI">W RSI<span class="sort-icon"></span></th>
+              <th class="sortable" data-col="atr" data-pid="${p.id}" onclick="sortTable(this)" title="Average True Range (14)">ATR<span class="sort-icon"></span></th>
+              <th class="sortable" data-col="fcfy" data-pid="${p.id}" onclick="sortTable(this)" title="Free Cash Flow Yield">FCF Yld<span class="sort-icon"></span></th>
+              <th class="sortable" data-col="orating" data-pid="${p.id}" onclick="sortTable(this)" title="Claude's opinion — click a row for the thesis">Claude<span class="sort-icon"></span></th>
+              <th title="Claude's 12-month price target">12M Tgt</th>
+              <th class="sortable" data-col="oupside" data-pid="${p.id}" onclick="sortTable(this)" title="Upside to Claude's target">Upside<span class="sort-icon"></span></th>
+              <th class="sortable" data-col="oconv" data-pid="${p.id}" onclick="sortTable(this)" title="Claude's conviction in the target">Conv.<span class="sort-icon"></span></th>
+            </tr>
+          </thead>
+          <tbody id="tbody-${p.id}">
+          </tbody>
+        </table>
+      </div>`;
+    container.appendChild(panel);
+
+    // Build rows
+    const tbody = panel.querySelector('#tbody-' + p.id);
+    p.tickers.forEach(({ sym, name }) => {
+      const safeId = sym.replace(/[^a-zA-Z0-9]/g, '_');
+      const tr = document.createElement('tr');
+      tr.id = 'row-' + p.id + '-' + safeId;
+      tr.className = 'data-row';
+      tr.onclick = () => toggleDrawer(p.id, sym, name, tr);
+      tr.innerHTML = `
+        <td class="sym-cell"><span class="sym-text">${sym}</span><span class="row-status" id="${p.id}-${safeId}-st"></span></td>
+        <td class="name-cell">${name}</td>
+        <td><span class="val muted" id="${p.id}-${safeId}-price">—</span></td>
+        <td data-val=""><span class="val muted" id="${p.id}-${safeId}-sma50">—</span></td>
+        <td data-val=""><span class="val muted" id="${p.id}-${safeId}-sma200">—</span></td>
+        <td data-val=""><span class="val muted" id="${p.id}-${safeId}-vs200">—</span></td>
+        <td data-val=""><span class="val muted" id="${p.id}-${safeId}-sma200w">—</span></td>
+        <td data-val=""><span class="rsi-badge muted" id="${p.id}-${safeId}-rsid">—</span></td>
+        <td data-val=""><span class="rsi-badge muted" id="${p.id}-${safeId}-rsiw">—</span></td>
+        <td data-val=""><span class="val muted" id="${p.id}-${safeId}-atr">—</span></td>
+        <td data-val=""><span class="val muted" id="${p.id}-${safeId}-fcfy">—</span></td>
+        <td data-val=""><span class="val muted" id="${p.id}-${safeId}-orating">—</span></td>
+        <td data-val=""><span class="val muted" id="${p.id}-${safeId}-otarget">—</span></td>
+        <td data-val=""><span class="val muted" id="${p.id}-${safeId}-oupside">—</span></td>
+        <td data-val=""><span class="val muted" id="${p.id}-${safeId}-oconv">—</span></td>`;
+      tbody.appendChild(tr);
+      // Drawer row (hidden by default)
+      const drawerTr = document.createElement('tr');
+      drawerTr.id = 'drawer-' + p.id + '-' + safeId;
+      drawerTr.className = 'chart-drawer';
+      const drawerTd = document.createElement('td');
+      drawerTd.colSpan = 15;
+      drawerTd.innerHTML = '<div class="drawer-inner" id="drawerinner-' + p.id + '-' + safeId + '"></div>';
+      drawerTr.appendChild(drawerTd);
+      tbody.appendChild(drawerTr);
+    });
+  });
+}
+
+// ── Switch portfolio ─────────────────────────────────────────────────────────
+function switchPortfolio(id) {
+  activePortfolioId = id;
+  document.querySelectorAll('.portfolio-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.screener-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.ptab').forEach(t => t.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
+  document.getElementById('ptab-' + id).classList.add('active');
+  document.getElementById('fetch-btn').style.display = '';
+  setStatus('Switched to ' + PORTFOLIOS.find(p => p.id === id).name + ' — click LOAD DATA to fetch', '');
+  setProgress(0, 1);
+  setETA('');
+}
+
+// ── Render one row ───────────────────────────────────────────────────────────
+function renderRow(portfolioId, sym, dailyData, weeklyData) {
+  const safeId = sym.replace(/[^a-zA-Z0-9]/g, '_');
+  const pid = portfolioId;
+
+  const dv = dailyData.values.slice().reverse();
+  const dc = dv.map(v => parseFloat(v.close));
+  const dv_vol = dv.map(v => parseFloat(v.volume) || 0);
+  const dd = dv.map(v => v.datetime.slice(5));
+  const wv = weeklyData.values.slice().reverse();
+  const wc = wv.map(v => parseFloat(v.close));
+  // Store for chart drawer
+  tickerData[sym] = { closes: dc, volumes: dv_vol, dates: dd, rawDaily: dv };
+
+  const price   = dc[dc.length - 1];
+  const sma50   = calcSMA(dc, 50);
+  const sma200  = calcSMA(dc, 200);
+  const sma200w = calcSMA(wc, 200); // 200-week SMA
+  const rsiD    = calcRSI(dc);
+  const rsiW    = calcRSI(wc);
+
+  const setSpan = (id, txt, cls) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = txt;
+    el.className = 'val' + (cls ? ' ' + cls : '');
+  };
+  const setBadge = (id, txt, cls) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = txt;
+    el.className = 'rsi-badge' + (cls ? ' ' + cls : '');
+  };
+  // Store numeric sort value on the parent <td>
+  const setTdVal = (id, num) => {
+    const el = document.getElementById(id);
+    if (el && el.parentElement) el.parentElement.setAttribute('data-val', isNaN(num) ? '' : num);
+  };
+
+  // Price (no color coding, just display)
+  const priceEl = document.getElementById(pid+'-'+safeId+'-price');
+  if (priceEl) { priceEl.textContent = fmtPrice(price); priceEl.className = 'val'; }
+
+  if (sma50) {
+    setSpan(pid+'-'+safeId+'-sma50', fmtPrice(sma50), price > sma50 ? 'green' : 'red');
+    setTdVal(pid+'-'+safeId+'-sma50', sma50);
+  }
+  if (sma200) {
+    setSpan(pid+'-'+safeId+'-sma200', fmtPrice(sma200), price > sma200 ? 'green' : 'red');
+    setTdVal(pid+'-'+safeId+'-sma200', sma200);
+    const pct = ((price - sma200) / sma200 * 100);
+    setSpan(pid+'-'+safeId+'-vs200', (pct > 0 ? '+' : '') + pct.toFixed(1) + '%', pct > 0 ? 'green' : 'red');
+    setTdVal(pid+'-'+safeId+'-vs200', pct);
+  }
+  if (sma200w) {
+    setSpan(pid+'-'+safeId+'-sma200w', fmtPrice(sma200w), price > sma200w ? 'green' : 'red');
+    setTdVal(pid+'-'+safeId+'-sma200w', sma200w);
+  }
+  if (rsiD !== null) {
+    setBadge(pid+'-'+safeId+'-rsid', rsiD.toFixed(1), rsiClass(rsiD));
+    setTdVal(pid+'-'+safeId+'-rsid', rsiD);
+  }
+  if (rsiW !== null) {
+    setBadge(pid+'-'+safeId+'-rsiw', rsiW.toFixed(1), rsiClass(rsiW));
+    setTdVal(pid+'-'+safeId+'-rsiw', rsiW);
+  }
+
+  const atr = calcATR(dv);
+  if (atr !== null) {
+    const atrPct = (atr / price * 100);
+    setSpan(pid+'-'+safeId+'-atr', '$'+atr.toFixed(2)+' ('+atrPct.toFixed(1)+'%)',
+      atrPct > 5 ? 'amber' : '');
+    setTdVal(pid+'-'+safeId+'-atr', atr);
+  }
+
+  // FCF Yield from pre-fetched JSON (injected as window._FCF_DATA)
+  const fcfEntry2 = fcfData[sym] || {};
+  const fcfRaw    = typeof fcfEntry2.current === 'number' ? fcfEntry2.current : null;
+  const fcfEl     = document.getElementById(pid+'-'+safeId+'-fcfy');
+  if (fcfEl) {
+    if (fcfRaw !== null) {
+      const fcfPct = (fcfRaw * 100).toFixed(2) + '%';
+      fcfEl.textContent = fcfPct;
+      // Color: >= 5% green, 2-5% white, 0-2% amber, negative red
+      const cls = fcfRaw >= 0.05 ? 'green' : fcfRaw >= 0.02 ? '' : fcfRaw >= 0 ? 'amber' : 'red';
+      fcfEl.className = 'val' + (cls ? ' ' + cls : '');
+      fcfEl.parentElement.setAttribute('data-val', fcfRaw * 100);
+    } else {
+      fcfEl.textContent = '—';
+      fcfEl.className = 'val muted';
+    }
+  }
+
+  updateOpinionUpside(pid, sym, price);
+
+  const st = document.getElementById(pid + '-' + safeId + '-st');
+  if (st) { st.textContent = ''; st.title = ''; st.className = 'row-status'; }
+}
+
+// ── Update summary strip ─────────────────────────────────────────────────────
+function updateSummary(portfolioId) {
+  const p = PORTFOLIOS.find(x => x.id === portfolioId);
+  let above = 0, below = 0, ob = 0, os = 0;
+  p.tickers.forEach(({ sym }) => {
+    const safeId = sym.replace(/[^a-zA-Z0-9]/g, '_');
+    const vs = document.getElementById(portfolioId + '-' + safeId + '-vs200');
+    const rsid = document.getElementById(portfolioId + '-' + safeId + '-rsid');
+    if (vs && vs.classList.contains('green')) above++;
+    if (vs && vs.classList.contains('red'))   below++;
+    if (rsid) {
+      const v = parseFloat(rsid.textContent);
+      if (!isNaN(v)) {
+        if (v >= 70) ob++;
+        if (v <= 30) os++;
+      }
+    }
+  });
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  set('above200-' + portfolioId, above);
+  set('below200-' + portfolioId, below);
+  set('overbought-' + portfolioId, ob);
+  set('oversold-'   + portfolioId, os);
+}
+
+// ── Main fetch ───────────────────────────────────────────────────────────────
+async function fetchCurrentPortfolio() {
+  const portfolio = PORTFOLIOS.find(p => p.id === activePortfolioId);
+  const btn = document.getElementById('fetch-btn');
+  btn.disabled = true;
+  fetchAbort = false;
+  updCredits();
+
+  const total = portfolio.tickers.length * 2;
+  let done = 0;
+  setProgress(0, total);
+
+  // Reset all rows to pending
+  portfolio.tickers.forEach(({ sym }) => {
+    const safeId = sym.replace(/[^a-zA-Z0-9]/g, '_');
+    const st = document.getElementById(portfolio.id + '-' + safeId + '-st');
+    if (st) { st.textContent = ''; st.title = ''; st.className = 'row-status'; }
+    const priceReset = document.getElementById(portfolio.id + '-' + safeId + '-price');
+    if (priceReset) { priceReset.textContent = '—'; priceReset.className = 'val muted'; }
+    ['sma50','sma200','vs200','sma200w','atr','fcfy'].forEach(f => {
+      const el = document.getElementById(portfolio.id + '-' + safeId + '-' + f);
+      if (el) { el.textContent = '—'; el.className = 'val muted'; if (el.parentElement) el.parentElement.setAttribute('data-val',''); }
+    });
+    ['rsid','rsiw'].forEach(f => {
+      const el = document.getElementById(portfolio.id + '-' + safeId + '-' + f);
+      if (el) { el.textContent = '—'; el.className = 'rsi-badge muted'; if (el.parentElement) el.parentElement.setAttribute('data-val',''); }
+    });
+  });
+
+  try {
+    for (let i = 0; i < portfolio.tickers.length; i++) {
+      const { sym, name } = portfolio.tickers[i];
+      const safeId = sym.replace(/[^a-zA-Z0-9]/g, '_');
+
+      if (fetchAbort) break;
+
+      // Mark row loading
+      const st = document.getElementById(portfolio.id + '-' + safeId + '-st');
+      if (st) { st.textContent = ''; st.title = 'loading…'; st.className = 'row-status loading'; }
+
+      // ETA calc
+      const remaining = portfolio.tickers.length - i;
+      const callsLeft = remaining * 2;
+      const recentCalls = callTimestamps.filter(t => Date.now() - t < WINDOW_MS).length;
+      const cooldownsLeft = Math.max(0, Math.floor((recentCalls + callsLeft - 1) / 8));
+      const estSecs = Math.ceil(callsLeft / 8) * 5 + cooldownsLeft * WINDOW_MS / 1000;
+      const estMins = Math.ceil(estSecs / 60);
+      setETA(estMins > 1 ? '~' + estMins + 'min remaining' : '< 1 min remaining');
+
+      setStatus('Fetching ' + sym + ' (' + (i + 1) + '/' + portfolio.tickers.length + ')...', 'loading');
+
+      let daily, weekly;
+      try {
+        daily = await apiGet(sym, '1day');
+        done++; setProgress(done, total);
+        weekly = await apiGet(sym, '1week');
+        done++; setProgress(done, total);
+        renderRow(portfolio.id, sym, daily, weekly);
+        updateSummary(portfolio.id);
+      } catch (rowErr) {
+        if (rowErr.message === 'ABORTED') break;
+        if (st) { st.textContent = ''; st.title = 'Error: ' + rowErr.message; st.className = 'row-status error'; }
+        done += 2; setProgress(done, total);
+      }
+    }
+
+    setStatus('Done — ' + portfolio.name + ' loaded at ' + new Date().toLocaleTimeString(), '');
+    setETA('');
+  } catch (err) {
+    setStatus('Error: ' + err.message, 'error');
+  }
+
+  btn.disabled = false;
+  setProgress(total, total);
+}
+
+/* SCREENER_DATA_START */
+/* SCREENER_DATA_END */
+/* FCF_DATA_START */
+/* FCF_DATA_END */
+// ── Click-and-drag to pan tables sideways (like a touch screen) ──────────────
+(function enableDragScroll() {
+  let wrap = null, startX = 0, startY = 0, startL = 0, startT = 0, moved = false;
+  document.addEventListener('mousedown', (e) => {
+    const w = e.target.closest('.stock-table-wrap');
+    if (!w || e.button !== 0 || e.target.closest('button, a, input, canvas, .op-box')) return;
+    wrap = w; moved = false;
+    startX = e.clientX; startY = e.clientY; startL = w.scrollLeft; startT = w.scrollTop;
+  });
+  document.addEventListener('mousemove', (e) => {
+    if (!wrap) return;
+    const dx = e.clientX - startX, dy = e.clientY - startY;
+    if (!moved && Math.abs(dx) + Math.abs(dy) > 5) { moved = true; wrap.classList.add('dragging'); }
+    if (moved) { wrap.scrollLeft = startL - dx; wrap.scrollTop = startT - dy; }
+  });
+  document.addEventListener('mouseup', () => {
+    if (wrap) wrap.classList.remove('dragging');
+    wrap = null;
+  });
+  // A drag should not count as a click (which would open a chart drawer / re-sort)
+  document.addEventListener('click', (e) => {
+    if (moved) { e.stopPropagation(); e.preventDefault(); moved = false; }
+  }, true);
+})();
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+buildUI();
+loadFCFData();
+loadOpinions();
+</script>
+</body>
+</html>
