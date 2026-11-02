@@ -22,9 +22,9 @@ except ImportError:
 
 TICKERS = sorted(set([
     # Hunter's Portfolio
-    "AMZN", "ASML", "BABA", "BIDU", "BYDDY", "CRM", "GOOGL", "GRRR", "HIMS",
-    "IONQ", "JD", "ONDS", "OSCR", "PEGA", "PEP", "QBTS", "SE",
-    "TSLA", "UNH", "ZETA", "ZVRA", "IBIT",
+    "AMZN", "APP", "ASML", "ASTS", "BABA", "BIDU", "CRM", "GOOGL", "HAWK", "HIMS",
+    "IONQ", "IREN", "JD", "OSCR", "PEGA", "PEP", "SE", "SKHY",
+    "TSLA", "TTAN", "UNH", "ZETA", "ZVRA", "IBIT",
     # Scott's Portfolio
     "ABT", "ADBE", "ASTS", "ISRG", "MELI", "NFLX", "TTWO", "AMGN", "BKNG", "ETHE", "ELF", "EXE", "LULU",
     "LVS", "MSFT", "NKE", "NOW", "NVO", "ORCL", "PYPL", "SPOT", "TMDX", "UBER", "WDAY",
@@ -44,7 +44,7 @@ SYMBOL_MAP = {
     "ETH/USD": None,
     "IBIT":    None,
     "ETHE":    None,  # Grayscale Ethereum ETF — no FCF
-    "ETH":     None,  # Grayscale Ethereum Mini Trust ETF — no FCF
+    "ETH":     None,  # Grayscale Ethereum Staking Mini ETF — no FCF
 }
 
 def get_fcf_data(ticker_sym):
